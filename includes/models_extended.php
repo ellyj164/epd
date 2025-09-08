@@ -395,13 +395,18 @@ class Recommendation extends BaseModel {
                 VALUES (?, ?, ?, ?, ?, ?)
             ");
             
+            // Create variables for bindParam (must be passed by reference)
+            $metadataJson = json_encode($metadata);
+            $ipAddress = getClientIP();
+            $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+            
             // Bind parameters with explicit types
             $stmt->bindParam(1, $userId, PDO::PARAM_INT);
             $stmt->bindParam(2, $activityType, PDO::PARAM_STR);
             $stmt->bindParam(3, $productId, PDO::PARAM_INT);
-            $stmt->bindParam(4, $metadataJson = json_encode($metadata), PDO::PARAM_STR);
-            $stmt->bindParam(5, $ipAddress = getClientIP(), PDO::PARAM_STR);
-            $stmt->bindParam(6, $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '', PDO::PARAM_STR);
+            $stmt->bindParam(4, $metadataJson, PDO::PARAM_STR);
+            $stmt->bindParam(5, $ipAddress, PDO::PARAM_STR);
+            $stmt->bindParam(6, $userAgent, PDO::PARAM_STR);
             
             return $stmt->execute();
             
