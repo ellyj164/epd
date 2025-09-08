@@ -19,9 +19,9 @@ $newArrivals = $product->getLatest(6);
 // Get random products for banners
 $bannerProducts = $product->getRandomProducts(20);
 
-// Log user activity if logged in
+// Log user activity if logged in (using valid activity type)
 if (Session::isLoggedIn()) {
-    $recommendation->logActivity(Session::getUserId(), null, 'view_homepage');
+    $recommendation->logActivity(Session::getUserId(), null, 'view_product');
 }
 
 // Set page title

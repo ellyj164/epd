@@ -1,0 +1,52 @@
+-- Migration: Add NOT NULL and DEFAULT to activity_type column in user_activities table
+-- Date: 2024-09-08
+-- Description: Ensure activity_type column cannot be NULL and defaults to 'view_product'
+--             while maintaining CHECK constraint compatibility
+
+-- For MySQL
+ALTER TABLE user_activities 
+MODIFY COLUMN activity_type ENUM('view_product', 'add_to_cart', 'purchase', 'search', 'review') 
+NOT NULL DEFAULT 'view_product';
+
+-- For SQLite (if using SQLite)
+-- Note: SQLite doesn't support direct ALTER COLUMN, so we need to recreate the table
+-- 
+-- BEGIN TRANSACTION;
+-- 
+-- -- Step 1: Rename existing table
+-- ALTER TABLE user_activities RENAME TO user_activities_old;
+-- 
+-- -- Step 2: Create new table with updated constraints
+-- CREATE TABLE user_activities (
+--     id INTEGER PRIMARY KEY AUTOINCREMENT,
+--     user_id INTEGER,
+--     activity_type TEXT NOT NULL DEFAULT 'view_product' 
+--         CHECK (activity_type IN ('view_product', 'add_to_cart', 'purchase', 'search', 'review')),
+--     product_id INTEGER,
+--     search_query VARCHAR(255),
+--     metadata TEXT,
+--     ip_address VARCHAR(45),
+--     user_agent TEXT,
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+--     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL
+-- );
+-- 
+-- -- Step 3: Copy data from old table
+-- INSERT INTO user_activities (id, user_id, activity_type, product_id, search_query, metadata, ip_address, user_agent, created_at)
+-- SELECT id, user_id, 
+--        CASE 
+--            WHEN activity_type IS NULL OR activity_type = '' THEN 'view_product'
+--            ELSE activity_type 
+--        END as activity_type,
+--        product_id, search_query, metadata, ip_address, user_agent, created_at
+-- FROM user_activities_old;
+-- 
+-- -- Step 4: Drop old table
+-- DROP TABLE user_activities_old;
+-- 
+-- -- Step 5: Recreate indexes
+-- CREATE INDEX idx_user_activity ON user_activities(user_id, activity_type);
+-- CREATE INDEX idx_product_activity ON user_activities(product_id, activity_type);
+-- 
+-- COMMIT;
