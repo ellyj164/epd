@@ -32,6 +32,7 @@ class User extends BaseModel {
     public function register($data) {
         $data['password_hash'] = hashPassword($data['password']);
         unset($data['password']);
+        unset($data['confirm_password']); // Remove confirm_password field
         $data['created_at'] = date('Y-m-d H:i:s');
         
         return $this->create($data);

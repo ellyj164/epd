@@ -15,7 +15,7 @@ $vendor = new Vendor();
 
 $current_user = $user->find(Session::getUserId());
 $recentOrders = $order->getUserOrders(Session::getUserId(), 5);
-$isVendor = $vendor->getByUserId(Session::getUserId());
+$isVendor = $vendor->findByUserId(Session::getUserId());
 
 $page_title = 'My FezaMarket Account';
 includeHeader($page_title);

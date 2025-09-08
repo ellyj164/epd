@@ -14,7 +14,7 @@ $product = new Product();
 $order = new Order();
 
 // Check if user is a vendor
-$vendorInfo = $vendor->getByUserId(Session::getUserId());
+$vendorInfo = $vendor->findByUserId(Session::getUserId());
 if (!$vendorInfo) {
     // Redirect to seller registration if not a vendor
     header('Location: /sell.php');

@@ -12,3 +12,12 @@
 [2025-09-08 18:42:06] [ERROR] Uncaught exception: Call to undefined method Category::findBySlug() in /home/runner/work/epd/epd/category.php on line 35
 [2025-09-08 18:42:58] [ERROR] Registration error: SQLSTATE[HY000]: General error: 1 table users has no column named confirm_password
 [2025-09-08 18:44:30] [ERROR] Uncaught exception: Call to undefined method Product::findByFilters() in /home/runner/work/epd/epd/category.php on line 74
+[2025-09-08 18:45:27] [ERROR] Registration error: SQLSTATE[HY000]: General error: 1 table users has no column named confirm_password
+[2025-09-08 18:46:11] [INFO] New user registered: test456@test.com
+[2025-09-08 18:46:20] [INFO] User logged in: test456@test.com
+[2025-09-08 18:46:27] [INFO] User logged in: test456@test.com
+[2025-09-08 18:46:34] [ERROR] Uncaught exception: SQLSTATE[23000]: Integrity constraint violation: 19 CHECK constraint failed: activity_type IN ('view_product', 'add_to_cart', 'purchase', 'search', 'review') in /home/runner/work/epd/epd/includes/models_extended.php on line 360
+[2025-09-08 18:46:40] [ERROR] Uncaught exception: SQLSTATE[23000]: Integrity constraint violation: 19 CHECK constraint failed: activity_type IN ('view_product', 'add_to_cart', 'purchase', 'search', 'review') in /home/runner/work/epd/epd/includes/models_extended.php on line 360
+[2025-09-08 18:46:46] [ERROR] Uncaught exception: SQLSTATE[23000]: Integrity constraint violation: 19 CHECK constraint failed: activity_type IN ('view_product', 'add_to_cart', 'purchase', 'search', 'review') in /home/runner/work/epd/epd/includes/models_extended.php on line 360
+[2025-09-08 18:46:53] [ERROR] Uncaught exception: SQLSTATE[23000]: Integrity constraint violation: 19 CHECK constraint failed: activity_type IN ('view_product', 'add_to_cart', 'purchase', 'search', 'review') in /home/runner/work/epd/epd/includes/models_extended.php on line 360
+[2025-09-08 18:47:26] [ERROR] Uncaught exception: Call to undefined method Vendor::getByUserId() in /home/runner/work/epd/epd/account.php on line 18
