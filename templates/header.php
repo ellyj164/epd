@@ -4,9 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars($page_title . ' - FezaMarket'); ?></title>
+    
+    <!-- Modern CSS Framework -->
+    <link rel="stylesheet" href="/assets/css/base.css">
     <link rel="stylesheet" href="/css/styles.css">
-    <script src="/js/fezamarket.js" defer></script>
+    
+    <!-- Preload critical assets -->
+    <link rel="preload" href="/assets/js/ui.js" as="script">
+    
+    <!-- Favicon and meta -->
     <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
+    <meta name="description" content="<?php echo htmlspecialchars($meta_description ?? 'FezaMarket - Buy & Sell Everything Online'); ?>">
+    
+    <!-- Modern JavaScript -->
+    <script src="/assets/js/ui.js" defer></script>
+    <script src="/js/fezamarket.js" defer></script>
 </head>
 <body>
     <header class="fezamarket-header">
