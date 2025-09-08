@@ -6,8 +6,8 @@
 
 // Database connection settings
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'ecommerce_platform');
-define('DB_USER', 'root');
+define('DB_NAME', 'duns1');
+define('DB_USER', 'duns1');
 define('DB_PASS', '');
 define('DB_CHARSET', 'utf8mb4');
 
