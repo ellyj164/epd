@@ -9,3 +9,5 @@
 [2025-09-08 17:51:04] [ERROR] Uncaught exception: Database connection failed: SQLSTATE[HY000] [2002] No such file or directory in /home/runner/work/epd/epd/includes/database.php on line 41
 [2025-09-08 17:53:08] [ERROR] Uncaught exception: Database connection failed: SQLSTATE[HY000] [2002] No such file or directory in /home/runner/work/epd/epd/includes/database.php on line 41
 [2025-09-08 17:53:24] [ERROR] Uncaught exception: Call to undefined method Product::getOnSale() in /home/runner/work/epd/epd/deals.php on line 14
+[2025-09-08 18:42:06] [ERROR] Uncaught exception: Call to undefined method Category::findBySlug() in /home/runner/work/epd/epd/category.php on line 35
+[2025-09-08 18:42:58] [ERROR] Registration error: SQLSTATE[HY000]: General error: 1 table users has no column named confirm_password
