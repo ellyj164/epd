@@ -21,3 +21,4 @@
 [2025-09-08 18:46:46] [ERROR] Uncaught exception: SQLSTATE[23000]: Integrity constraint violation: 19 CHECK constraint failed: activity_type IN ('view_product', 'add_to_cart', 'purchase', 'search', 'review') in /home/runner/work/epd/epd/includes/models_extended.php on line 360
 [2025-09-08 18:46:53] [ERROR] Uncaught exception: SQLSTATE[23000]: Integrity constraint violation: 19 CHECK constraint failed: activity_type IN ('view_product', 'add_to_cart', 'purchase', 'search', 'review') in /home/runner/work/epd/epd/includes/models_extended.php on line 360
 [2025-09-08 18:47:26] [ERROR] Uncaught exception: Call to undefined method Vendor::getByUserId() in /home/runner/work/epd/epd/account.php on line 18
+[2025-09-08 19:01:57] [INFO] New user registered: john.doe@example.com
