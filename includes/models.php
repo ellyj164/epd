@@ -1,0 +1,302 @@
+<?php
+/**
+ * User Model
+ * E-Commerce Platform
+ */
+
+require_once __DIR__ . '/database.php';
+
+class User extends BaseModel {
+    protected $table = 'users';
+    
+    public function findByEmail($email) {
+        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE email = ?");
+        $stmt->execute([$email]);
+        return $stmt->fetch();
+    }
+    
+    public function findByUsername($username) {
+        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE username = ?");
+        $stmt->execute([$username]);
+        return $stmt->fetch();
+    }
+    
+    public function authenticate($email, $password) {
+        $user = $this->findByEmail($email);
+        if ($user && verifyPassword($password, $user['password_hash'])) {
+            return $user;
+        }
+        return false;
+    }
+    
+    public function register($data) {
+        $data['password_hash'] = hashPassword($data['password']);
+        unset($data['password']);
+        $data['created_at'] = date('Y-m-d H:i:s');
+        
+        return $this->create($data);
+    }
+    
+    public function updatePassword($userId, $newPassword) {
+        $data = ['password_hash' => hashPassword($newPassword)];
+        return $this->update($userId, $data);
+    }
+    
+    public function verifyEmail($userId) {
+        return $this->update($userId, ['email_verified' => 1]);
+    }
+    
+    public function getAddresses($userId) {
+        $stmt = $this->db->prepare("SELECT * FROM user_addresses WHERE user_id = ? ORDER BY is_default DESC, created_at DESC");
+        $stmt->execute([$userId]);
+        return $stmt->fetchAll();
+    }
+    
+    public function addAddress($userId, $addressData) {
+        $addressData['user_id'] = $userId;
+        
+        $stmt = $this->db->prepare("INSERT INTO user_addresses (user_id, type, address_line1, address_line2, city, state, postal_code, country, is_default) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        
+        return $stmt->execute([
+            $userId,
+            $addressData['type'],
+            $addressData['address_line1'],
+            $addressData['address_line2'] ?? '',
+            $addressData['city'],
+            $addressData['state'],
+            $addressData['postal_code'],
+            $addressData['country'],
+            $addressData['is_default'] ?? 0
+        ]);
+    }
+    
+    public function getUsersByRole($role, $limit = null, $offset = 0) {
+        $sql = "SELECT * FROM {$this->table} WHERE role = ?";
+        if ($limit) {
+            $sql .= " LIMIT {$limit} OFFSET {$offset}";
+        }
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$role]);
+        return $stmt->fetchAll();
+    }
+}
+
+/**
+ * Product Model
+ */
+class Product extends BaseModel {
+    protected $table = 'products';
+    
+    public function findWithVendor($id) {
+        $stmt = $this->db->prepare("
+            SELECT p.*, v.business_name as vendor_name, c.name as category_name 
+            FROM {$this->table} p 
+            LEFT JOIN vendors v ON p.vendor_id = v.id 
+            LEFT JOIN categories c ON p.category_id = c.id 
+            WHERE p.id = ?
+        ");
+        $stmt->execute([$id]);
+        return $stmt->fetch();
+    }
+    
+    public function findByCategory($categoryId, $limit = PRODUCTS_PER_PAGE, $offset = 0) {
+        $stmt = $this->db->prepare("
+            SELECT p.*, v.business_name as vendor_name 
+            FROM {$this->table} p 
+            LEFT JOIN vendors v ON p.vendor_id = v.id 
+            WHERE p.category_id = ? AND p.status = 'active' 
+            ORDER BY p.featured DESC, p.created_at DESC 
+            LIMIT {$limit} OFFSET {$offset}
+        ");
+        $stmt->execute([$categoryId]);
+        return $stmt->fetchAll();
+    }
+    
+    public function search($query, $limit = PRODUCTS_PER_PAGE, $offset = 0) {
+        $searchTerm = "%{$query}%";
+        $stmt = $this->db->prepare("
+            SELECT p.*, v.business_name as vendor_name 
+            FROM {$this->table} p 
+            LEFT JOIN vendors v ON p.vendor_id = v.id 
+            WHERE (p.name LIKE ? OR p.description LIKE ? OR p.tags LIKE ?) 
+            AND p.status = 'active' 
+            ORDER BY p.featured DESC, p.created_at DESC 
+            LIMIT {$limit} OFFSET {$offset}
+        ");
+        $stmt->execute([$searchTerm, $searchTerm, $searchTerm]);
+        return $stmt->fetchAll();
+    }
+    
+    public function getFeatured($limit = 8) {
+        $stmt = $this->db->prepare("
+            SELECT p.*, v.business_name as vendor_name 
+            FROM {$this->table} p 
+            LEFT JOIN vendors v ON p.vendor_id = v.id 
+            WHERE p.featured = 1 AND p.status = 'active' 
+            ORDER BY p.created_at DESC 
+            LIMIT {$limit}
+        ");
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+    
+    public function getByVendor($vendorId, $limit = null, $offset = 0) {
+        $sql = "SELECT * FROM {$this->table} WHERE vendor_id = ?";
+        if ($limit) {
+            $sql .= " LIMIT {$limit} OFFSET {$offset}";
+        }
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$vendorId]);
+        return $stmt->fetchAll();
+    }
+    
+    public function updateStock($productId, $quantity) {
+        $stmt = $this->db->prepare("UPDATE {$this->table} SET stock_quantity = ? WHERE id = ?");
+        return $stmt->execute([$quantity, $productId]);
+    }
+    
+    public function decreaseStock($productId, $quantity) {
+        $stmt = $this->db->prepare("UPDATE {$this->table} SET stock_quantity = stock_quantity - ? WHERE id = ? AND stock_quantity >= ?");
+        return $stmt->execute([$quantity, $productId, $quantity]);
+    }
+    
+    public function getImages($productId) {
+        $stmt = $this->db->prepare("SELECT * FROM product_images WHERE product_id = ? ORDER BY is_primary DESC, sort_order ASC");
+        $stmt->execute([$productId]);
+        return $stmt->fetchAll();
+    }
+    
+    public function addImage($productId, $imageUrl, $altText = '', $isPrimary = false) {
+        $stmt = $this->db->prepare("INSERT INTO product_images (product_id, image_url, alt_text, is_primary) VALUES (?, ?, ?, ?)");
+        return $stmt->execute([$productId, $imageUrl, $altText, $isPrimary ? 1 : 0]);
+    }
+    
+    public function getReviews($productId, $limit = REVIEWS_PER_PAGE, $offset = 0) {
+        $stmt = $this->db->prepare("
+            SELECT r.*, u.first_name, u.last_name 
+            FROM reviews r 
+            JOIN users u ON r.user_id = u.id 
+            WHERE r.product_id = ? AND r.status = 'approved' 
+            ORDER BY r.created_at DESC 
+            LIMIT {$limit} OFFSET {$offset}
+        ");
+        $stmt->execute([$productId]);
+        return $stmt->fetchAll();
+    }
+    
+    public function getAverageRating($productId) {
+        $stmt = $this->db->prepare("SELECT AVG(rating) as avg_rating, COUNT(*) as review_count FROM reviews WHERE product_id = ? AND status = 'approved'");
+        $stmt->execute([$productId]);
+        return $stmt->fetch();
+    }
+}
+
+/**
+ * Category Model
+ */
+class Category extends BaseModel {
+    protected $table = 'categories';
+    
+    public function getActive() {
+        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE status = 'active' ORDER BY sort_order ASC, name ASC");
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+    
+    public function getChildren($parentId) {
+        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE parent_id = ? AND status = 'active' ORDER BY sort_order ASC, name ASC");
+        $stmt->execute([$parentId]);
+        return $stmt->fetchAll();
+    }
+    
+    public function getParents() {
+        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE parent_id IS NULL AND status = 'active' ORDER BY sort_order ASC, name ASC");
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+    
+    public function getProductCount($categoryId) {
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM products WHERE category_id = ? AND status = 'active'");
+        $stmt->execute([$categoryId]);
+        return $stmt->fetchColumn();
+    }
+}
+
+/**
+ * Cart Model
+ */
+class Cart extends BaseModel {
+    protected $table = 'cart';
+    
+    public function getCartItems($userId) {
+        $stmt = $this->db->prepare("
+            SELECT c.*, p.name, p.price, p.stock_quantity, p.sku, 
+                   pi.image_url as product_image, v.business_name as vendor_name
+            FROM {$this->table} c 
+            JOIN products p ON c.product_id = p.id 
+            LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = 1
+            LEFT JOIN vendors v ON p.vendor_id = v.id
+            WHERE c.user_id = ? AND p.status = 'active'
+            ORDER BY c.created_at DESC
+        ");
+        $stmt->execute([$userId]);
+        return $stmt->fetchAll();
+    }
+    
+    public function addItem($userId, $productId, $quantity = 1) {
+        // Check if item already exists
+        $stmt = $this->db->prepare("SELECT id, quantity FROM {$this->table} WHERE user_id = ? AND product_id = ?");
+        $stmt->execute([$userId, $productId]);
+        $existing = $stmt->fetch();
+        
+        if ($existing) {
+            // Update quantity
+            $newQuantity = $existing['quantity'] + $quantity;
+            $stmt = $this->db->prepare("UPDATE {$this->table} SET quantity = ?, updated_at = NOW() WHERE id = ?");
+            return $stmt->execute([$newQuantity, $existing['id']]);
+        } else {
+            // Add new item
+            $stmt = $this->db->prepare("INSERT INTO {$this->table} (user_id, product_id, quantity) VALUES (?, ?, ?)");
+            return $stmt->execute([$userId, $productId, $quantity]);
+        }
+    }
+    
+    public function updateQuantity($userId, $productId, $quantity) {
+        if ($quantity <= 0) {
+            return $this->removeItem($userId, $productId);
+        }
+        
+        $stmt = $this->db->prepare("UPDATE {$this->table} SET quantity = ?, updated_at = NOW() WHERE user_id = ? AND product_id = ?");
+        return $stmt->execute([$quantity, $userId, $productId]);
+    }
+    
+    public function removeItem($userId, $productId) {
+        $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE user_id = ? AND product_id = ?");
+        return $stmt->execute([$userId, $productId]);
+    }
+    
+    public function clearCart($userId) {
+        $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE user_id = ?");
+        return $stmt->execute([$userId]);
+    }
+    
+    public function getCartTotal($userId) {
+        $stmt = $this->db->prepare("
+            SELECT SUM(c.quantity * p.price) as total 
+            FROM {$this->table} c 
+            JOIN products p ON c.product_id = p.id 
+            WHERE c.user_id = ? AND p.status = 'active'
+        ");
+        $stmt->execute([$userId]);
+        return $stmt->fetchColumn() ?: 0;
+    }
+    
+    public function getCartCount($userId) {
+        $stmt = $this->db->prepare("SELECT SUM(quantity) FROM {$this->table} WHERE user_id = ?");
+        $stmt->execute([$userId]);
+        return $stmt->fetchColumn() ?: 0;
+    }
+}
+?>
