@@ -217,6 +217,88 @@ class Product extends BaseModel {
         $stmt->execute();
         return $stmt->fetchAll();
     }
+    
+    public function findByFilters($filters = [], $sort = 'name', $limit = PRODUCTS_PER_PAGE, $offset = 0) {
+        $where = ["p.status = 'active'"];
+        $params = [];
+        
+        // Build WHERE conditions based on filters
+        if (isset($filters['category_id']) && $filters['category_id'] > 0) {
+            $where[] = "p.category_id = ?";
+            $params[] = $filters['category_id'];
+        }
+        
+        if (isset($filters['min_price']) && $filters['min_price'] !== null) {
+            $where[] = "p.price >= ?";
+            $params[] = $filters['min_price'];
+        }
+        
+        if (isset($filters['max_price']) && $filters['max_price'] !== null) {
+            $where[] = "p.price <= ?";
+            $params[] = $filters['max_price'];
+        }
+        
+        if (isset($filters['on_sale']) && $filters['on_sale']) {
+            $where[] = "p.sale_price IS NOT NULL AND p.sale_price > 0";
+        }
+        
+        // Build ORDER BY clause
+        $orderBy = match($sort) {
+            'price_asc' => 'p.price ASC',
+            'price_desc' => 'p.price DESC', 
+            'newest' => 'p.created_at DESC',
+            'rating' => 'p.id DESC', // Placeholder for rating sort
+            default => 'p.name ASC'
+        };
+        
+        $whereClause = implode(' AND ', $where);
+        
+        $sql = "
+            SELECT p.*, v.business_name as vendor_name 
+            FROM {$this->table} p 
+            LEFT JOIN vendors v ON p.vendor_id = v.id 
+            WHERE {$whereClause}
+            ORDER BY {$orderBy}
+            LIMIT {$limit} OFFSET {$offset}
+        ";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
+    }
+    
+    public function countByFilters($filters = []) {
+        $where = ["p.status = 'active'"];
+        $params = [];
+        
+        // Build WHERE conditions based on filters (same logic as findByFilters)
+        if (isset($filters['category_id']) && $filters['category_id'] > 0) {
+            $where[] = "p.category_id = ?";
+            $params[] = $filters['category_id'];
+        }
+        
+        if (isset($filters['min_price']) && $filters['min_price'] !== null) {
+            $where[] = "p.price >= ?";
+            $params[] = $filters['min_price'];
+        }
+        
+        if (isset($filters['max_price']) && $filters['max_price'] !== null) {
+            $where[] = "p.price <= ?";
+            $params[] = $filters['max_price'];
+        }
+        
+        if (isset($filters['on_sale']) && $filters['on_sale']) {
+            $where[] = "p.sale_price IS NOT NULL AND p.sale_price > 0";
+        }
+        
+        $whereClause = implode(' AND ', $where);
+        
+        $sql = "SELECT COUNT(*) FROM {$this->table} p WHERE {$whereClause}";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchColumn();
+    }
 }
 
 /**
@@ -247,6 +329,21 @@ class Category extends BaseModel {
         $stmt = $this->db->prepare("SELECT COUNT(*) FROM products WHERE category_id = ? AND status = 'active'");
         $stmt->execute([$categoryId]);
         return $stmt->fetchColumn();
+    }
+    
+    public function findBySlug($slug) {
+        // Since there's no slug column, we'll find by matching the slugified name
+        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE status = 'active'");
+        $stmt->execute();
+        $categories = $stmt->fetchAll();
+        
+        foreach ($categories as $category) {
+            if (slugify($category['name']) === $slug) {
+                return $category;
+            }
+        }
+        
+        return null;
     }
 }
 
