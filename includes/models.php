@@ -254,7 +254,7 @@ class Cart extends BaseModel {
         if ($existing) {
             // Update quantity
             $newQuantity = $existing['quantity'] + $quantity;
-            $stmt = $this->db->prepare("UPDATE {$this->table} SET quantity = ?, updated_at = NOW() WHERE id = ?");
+            $stmt = $this->db->prepare("UPDATE {$this->table} SET quantity = ?, updated_at = datetime('now') WHERE id = ?");
             return $stmt->execute([$newQuantity, $existing['id']]);
         } else {
             // Add new item
@@ -268,7 +268,7 @@ class Cart extends BaseModel {
             return $this->removeItem($userId, $productId);
         }
         
-        $stmt = $this->db->prepare("UPDATE {$this->table} SET quantity = ?, updated_at = NOW() WHERE user_id = ? AND product_id = ?");
+        $stmt = $this->db->prepare("UPDATE {$this->table} SET quantity = ?, updated_at = datetime('now') WHERE user_id = ? AND product_id = ?");
         return $stmt->execute([$quantity, $userId, $productId]);
     }
     

@@ -11,6 +11,10 @@ define('DB_USER', 'root');
 define('DB_PASS', '');
 define('DB_CHARSET', 'utf8mb4');
 
+// Use SQLite for demo if MySQL is not available
+define('USE_SQLITE', true);
+define('SQLITE_PATH', __DIR__ . '/../database/ecommerce.sqlite');
+
 // Application settings
 define('APP_NAME', 'E-Commerce Platform');
 define('APP_URL', 'http://localhost');

@@ -10,17 +10,17 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // Load configuration
-require_once __DIR__ . '/config/config.php';
+require_once __DIR__ . '/../config/config.php';
 
 // Load core functions
-require_once __DIR__ . '/includes/functions.php';
+require_once __DIR__ . '/functions.php';
 
 // Load database connection
-require_once __DIR__ . '/includes/database.php';
+require_once __DIR__ . '/database.php';
 
 // Load models
-require_once __DIR__ . '/includes/models.php';
-require_once __DIR__ . '/includes/models_extended.php';
+require_once __DIR__ . '/models.php';
+require_once __DIR__ . '/models_extended.php';
 
 // Initialize session
 Session::start();
@@ -44,16 +44,16 @@ if (Session::isLoggedIn()) {
 function includeHeader($title = '') {
     global $site_name, $current_user, $cart_count;
     $page_title = $title ? $title . ' - ' . $site_name : $site_name;
-    include __DIR__ . '/templates/header.php';
+    include __DIR__ . '/../templates/header.php';
 }
 
 function includeFooter() {
-    include __DIR__ . '/templates/footer.php';
+    include __DIR__ . '/../templates/footer.php';
 }
 
 function includeNavigation() {
     global $current_user, $cart_count;
-    include __DIR__ . '/templates/navigation.php';
+    include __DIR__ . '/../templates/navigation.php';
 }
 
 /**
