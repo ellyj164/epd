@@ -26,3 +26,4 @@
             LIMIT 20' at line 5 in /home/runner/work/epd/epd/includes/models.php on line 197
 [2025-09-08 20:42:43] [ERROR] Uncaught exception: SQLSTATE[42000]: Syntax error or access violation: 1064 You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '() 
             LIMIT 20' at line 5 in /home/runner/work/epd/epd/includes/models.php on line 197
+[2025-09-08 21:00:13] [ERROR] Uncaught exception: Database connection failed: SQLSTATE[HY000] [2002] No such file or directory in /home/runner/work/epd/epd/includes/database.php on line 24
