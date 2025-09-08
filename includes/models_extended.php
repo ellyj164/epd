@@ -446,6 +446,21 @@ class Recommendation extends BaseModel {
         return $stmt->fetchAll();
     }
     
+    public function getRecommendations($userId, $productId, $type = 'viewed_together', $limit = 6) {
+        switch ($type) {
+            case 'viewed_together':
+                return $this->getViewedTogether($productId, $limit);
+            case 'purchased_together':
+                return $this->getPurchasedTogether($productId, $limit);
+            case 'trending':
+                return $this->getTrendingProducts($limit);
+            case 'personalized':
+                return $userId ? $this->getPersonalizedRecommendations($userId, $limit) : [];
+            default:
+                return $this->getViewedTogether($productId, $limit);
+        }
+    }
+    
     public function logRecommendationClick($userId, $productId, $recommendationType) {
         return $this->create([
             'user_id' => $userId,

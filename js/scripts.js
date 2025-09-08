@@ -1,10 +1,10 @@
 /**
- * E-Commerce Platform JavaScript
+ * FezaMarket E-Commerce Platform JavaScript
  * Frontend functionality and interactions
  */
 
 // Application object
-const ECommerce = {
+const FezaMarket = {
     config: {
         apiUrl: '/api',
         cartUpdateDelay: 500
@@ -15,16 +15,19 @@ const ECommerce = {
         this.initModals();
         this.initTooltips();
         this.updateCartDisplay();
+        this.initSearchSuggestions();
     },
     
     bindEvents: function() {
         // Search functionality
         const searchForm = document.querySelector('.search-form');
-        const searchInput = document.querySelector('.search-input');
+        const searchInput = document.getElementById('search-input');
         
         if (searchForm && searchInput) {
             searchForm.addEventListener('submit', this.handleSearch.bind(this));
             searchInput.addEventListener('input', this.debounce(this.handleSearchSuggestions.bind(this), 300));
+            searchInput.addEventListener('focus', this.showSearchSuggestions.bind(this));
+            searchInput.addEventListener('blur', this.hideSearchSuggestions.bind(this));
         }
         
         // Cart functionality
@@ -48,6 +51,157 @@ const ECommerce = {
                 this.addToWishlist(e.target);
             }
         });
+        
+        // Category navigation hover effects
+        const categoryNavItems = document.querySelectorAll('.category-nav-item');
+        categoryNavItems.forEach(item => {
+            item.addEventListener('mouseenter', function() {
+                this.style.color = '#0654ba';
+                this.style.borderBottomColor = '#0654ba';
+            });
+            item.addEventListener('mouseleave', function() {
+                this.style.color = '#767676';
+                this.style.borderBottomColor = 'transparent';
+            });
+        });
+        
+        // Banner hover effects
+        const banners = document.querySelectorAll('[onclick*="window.location"]');
+        banners.forEach(banner => {
+            banner.addEventListener('mouseenter', function() {
+                const bg = this.querySelector('.banner-bg');
+                if (bg) {
+                    bg.style.transform = 'scale(1.05)';
+                }
+                this.style.transform = 'translateY(-2px)';
+            });
+            banner.addEventListener('mouseleave', function() {
+                const bg = this.querySelector('.banner-bg');
+                if (bg) {
+                    bg.style.transform = 'scale(1)';
+                }
+                this.style.transform = 'translateY(0)';
+            });
+        });
+    },
+    
+    initSearchSuggestions: function() {
+        const searchInput = document.getElementById('search-input');
+        const suggestionsContainer = document.getElementById('search-suggestions');
+        
+        if (!searchInput || !suggestionsContainer) return;
+        
+        // Create suggestions if container doesn't exist
+        if (!suggestionsContainer) {
+            const container = document.createElement('div');
+            container.id = 'search-suggestions';
+            container.className = 'search-suggestions';
+            container.style.cssText = `
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: white;
+                border: 1px solid #ddd;
+                border-top: none;
+                border-radius: 0 0 4px 4px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                z-index: 1000;
+                max-height: 300px;
+                overflow-y: auto;
+                display: none;
+            `;
+            searchInput.parentElement.appendChild(container);
+        }
+    },
+    
+    handleSearch: function(e) {
+        e.preventDefault();
+        const searchInput = document.getElementById('search-input');
+        const categorySelect = document.getElementById('category-select');
+        
+        if (!searchInput.value.trim()) return;
+        
+        const query = searchInput.value.trim();
+        const category = categorySelect ? categorySelect.value : '';
+        
+        let url = '/search.php?q=' + encodeURIComponent(query);
+        if (category) {
+            url += '&category=' + encodeURIComponent(category);
+        }
+        
+        window.location.href = url;
+    },
+    
+    handleSearchSuggestions: function(e) {
+        const query = e.target.value.trim();
+        const suggestionsContainer = document.getElementById('search-suggestions');
+        
+        if (!query || query.length < 2) {
+            this.hideSearchSuggestions();
+            return;
+        }
+        
+        // Mock search suggestions (in real app, this would be an API call)
+        const suggestions = [
+            'iPhone 15 Pro',
+            'Samsung Galaxy S24',
+            'MacBook Air M2',
+            'Nike Air Max',
+            'PlayStation 5',
+            'Nintendo Switch'
+        ].filter(item => item.toLowerCase().includes(query.toLowerCase()));
+        
+        this.displaySearchSuggestions(suggestions);
+    },
+    
+    displaySearchSuggestions: function(suggestions) {
+        const container = document.getElementById('search-suggestions');
+        if (!container) return;
+        
+        if (suggestions.length === 0) {
+            container.style.display = 'none';
+            return;
+        }
+        
+        container.innerHTML = suggestions.map(suggestion => 
+            `<div class="suggestion-item" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f0f0f0;" 
+                  onclick="FezaMarket.selectSuggestion('${suggestion}')"
+                  onmouseenter="this.style.backgroundColor='#f7f7f7'"
+                  onmouseleave="this.style.backgroundColor='white'">
+                ${suggestion}
+             </div>`
+        ).join('');
+        
+        container.style.display = 'block';
+    },
+    
+    selectSuggestion: function(suggestion) {
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+            searchInput.value = suggestion;
+            this.hideSearchSuggestions();
+            searchInput.form.submit();
+        }
+    },
+    
+    showSearchSuggestions: function() {
+        const container = document.getElementById('search-suggestions');
+        const input = document.getElementById('search-input');
+        
+        if (container && input.value.trim().length >= 2) {
+            container.style.display = 'block';
+        }
+    },
+    
+    hideSearchSuggestions: function() {
+        setTimeout(() => {
+            const container = document.getElementById('search-suggestions');
+            if (container) {
+                container.style.display = 'none';
+            }
+        }, 150);
+    },
         
         // Quantity controls
         document.addEventListener('change', (e) => {

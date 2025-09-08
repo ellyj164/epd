@@ -191,6 +191,32 @@ class Product extends BaseModel {
         $stmt->execute([$productId]);
         return $stmt->fetch();
     }
+    
+    public function getRandomProducts($limit = 10) {
+        $stmt = $this->db->prepare("
+            SELECT p.*, v.business_name as vendor_name 
+            FROM {$this->table} p 
+            LEFT JOIN vendors v ON p.vendor_id = v.id 
+            WHERE p.status = 'active' 
+            ORDER BY RANDOM() 
+            LIMIT {$limit}
+        ");
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+    
+    public function getLatest($limit = 8) {
+        $stmt = $this->db->prepare("
+            SELECT p.*, v.business_name as vendor_name 
+            FROM {$this->table} p 
+            LEFT JOIN vendors v ON p.vendor_id = v.id 
+            WHERE p.status = 'active' 
+            ORDER BY p.created_at DESC 
+            LIMIT {$limit}
+        ");
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
 }
 
 /**
