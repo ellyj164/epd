@@ -11,7 +11,7 @@ $isVendor = false;
 
 // Check if user is already a vendor
 if (Session::isLoggedIn()) {
-    $existingVendor = $vendor->getByUserId(Session::getUserId());
+    $existingVendor = $vendor->findByUserId(Session::getUserId());
     if ($existingVendor) {
         $isVendor = true;
     }
