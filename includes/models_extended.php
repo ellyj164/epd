@@ -350,21 +350,68 @@ class Wishlist extends BaseModel {
 class Recommendation extends BaseModel {
     protected $table = 'recommendation_logs';
     
+    /**
+     * Single source of truth for allowed activity types
+     * Must match DB CHECK constraint: activity_type IN ('view_product','add_to_cart','purchase','search','review')
+     */
+    const ALLOWED_ACTIVITY_TYPES = ['view_product', 'add_to_cart', 'purchase', 'search', 'review'];
+    
+    /**
+     * Log user activity with validation and error handling
+     * 
+     * @param int|null $userId User ID (can be null for anonymous users)
+     * @param int|null $productId Product ID (can be null for non-product activities like search)
+     * @param string $activityType Activity type - must be valid or mappable
+     * @param array $metadata Additional activity metadata
+     * @return bool True on success, false on failure
+     */
     public function logActivity($userId, $productId, $activityType, $metadata = []) {
-        $stmt = $this->db->prepare("
-            INSERT INTO user_activities 
-            (user_id, activity_type, product_id, metadata, ip_address, user_agent) 
-            VALUES (?, ?, ?, ?, ?, ?)
-        ");
+        // Validate activity type before DB interaction
+        if (!in_array($activityType, self::ALLOWED_ACTIVITY_TYPES, true)) {
+            // Map common aliases to valid activity types
+            $aliasMap = [
+                'view' => 'view_product',
+                'view_item' => 'view_product',
+                'view_homepage' => 'view_product', // Fix for index.php call
+                'cart' => 'add_to_cart',
+                'add' => 'add_to_cart',
+                'buy' => 'purchase',
+                'order' => 'purchase'
+            ];
+            
+            $activityType = $aliasMap[$activityType] ?? null;
+        }
         
-        return $stmt->execute([
-            $userId,
-            $activityType,
-            $productId,
-            json_encode($metadata),
-            getClientIP(),
-            $_SERVER['HTTP_USER_AGENT'] ?? ''
-        ]);
+        // If still invalid after mapping, log warning and return false
+        if ($activityType === null) {
+            error_log("Invalid activity_type provided to logActivity(): " . ($activityType ?? 'null'));
+            return false;
+        }
+        
+        try {
+            $stmt = $this->db->prepare("
+                INSERT INTO user_activities 
+                (user_id, activity_type, product_id, metadata, ip_address, user_agent) 
+                VALUES (?, ?, ?, ?, ?, ?)
+            ");
+            
+            // Bind parameters with explicit types
+            $stmt->bindParam(1, $userId, PDO::PARAM_INT);
+            $stmt->bindParam(2, $activityType, PDO::PARAM_STR);
+            $stmt->bindParam(3, $productId, PDO::PARAM_INT);
+            $stmt->bindParam(4, $metadataJson = json_encode($metadata), PDO::PARAM_STR);
+            $stmt->bindParam(5, $ipAddress = getClientIP(), PDO::PARAM_STR);
+            $stmt->bindParam(6, $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '', PDO::PARAM_STR);
+            
+            return $stmt->execute();
+            
+        } catch (PDOException $e) {
+            // Log PDO error info for debugging
+            $errorInfo = $this->db->errorInfo();
+            error_log("PDO Error in logActivity(): " . $e->getMessage() . 
+                     " | Error Info: " . implode(' | ', $errorInfo));
+            return false;
+        }
     }
     
     public function getViewedTogether($productId, $limit = 6) {

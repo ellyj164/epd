@@ -262,7 +262,7 @@ INSERT INTO categories (name, description) VALUES
 
 -- Insert default admin user (password: admin123)
 INSERT INTO users (username, email, password_hash, first_name, last_name, role, email_verified) VALUES
-('admin', 'admin@ecommerce.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Admin', 'User', 'admin', TRUE);
+('admin', 'admin@ecommerce.com', '$2y$10$8XhGGCEfQbE3oGhYiSQYT.YKO039HaD/dZ65g3TxF/lq6lnql3AH.', 'Admin', 'User', 'admin', TRUE);
 
 -- Insert default settings
 INSERT INTO settings (setting_key, setting_value, description) VALUES

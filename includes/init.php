@@ -22,6 +22,9 @@ require_once __DIR__ . '/database.php';
 require_once __DIR__ . '/models.php';
 require_once __DIR__ . '/models_extended.php';
 
+// Load UI components
+require_once __DIR__ . '/../assets/components/autoload.php';
+
 // Initialize session
 Session::start();
 
