@@ -452,7 +452,7 @@ class Recommendation extends BaseModel {
     
     public function getTrendingProducts($limit = 8) {
         $stmt = $this->db->prepare("
-            SELECT p.*, COUNT(ua.id) as activity_count, pi.image_url
+            SELECT p.*, COUNT(ua.id) as activity_count, MAX(pi.image_url) as image_url
             FROM products p 
             LEFT JOIN user_activities ua ON p.id = ua.product_id 
                 AND ua.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
