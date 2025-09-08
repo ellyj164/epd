@@ -109,12 +109,12 @@ class Order extends BaseModel {
     }
     
     public function updateStatus($orderId, $status) {
-        $stmt = $this->db->prepare("UPDATE {$this->table} SET status = ?, updated_at = datetime('now') WHERE id = ?");
+        $stmt = $this->db->prepare("UPDATE {$this->table} SET status = ?, updated_at = NOW() WHERE id = ?");
         return $stmt->execute([$status, $orderId]);
     }
     
     public function updatePaymentStatus($orderId, $status, $transactionId = null) {
-        $sql = "UPDATE {$this->table} SET payment_status = ?, updated_at = datetime('now')";
+        $sql = "UPDATE {$this->table} SET payment_status = ?, updated_at = NOW()";
         $params = [$status];
         
         if ($transactionId) {
@@ -452,10 +452,10 @@ class Recommendation extends BaseModel {
     
     public function getTrendingProducts($limit = 8) {
         $stmt = $this->db->prepare("
-            SELECT p.*, COUNT(ua.id) as activity_count, pi.image_url
+            SELECT p.*, COUNT(ua.id) as activity_count, MAX(pi.image_url) as image_url
             FROM products p 
             LEFT JOIN user_activities ua ON p.id = ua.product_id 
-                AND ua.created_at >= datetime('now', '-7 days')
+                AND ua.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
             LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = 1
             WHERE p.status = 'active'
             GROUP BY p.id 
@@ -532,13 +532,13 @@ class Settings extends BaseModel {
     }
     
     public function setSetting($key, $value, $description = '') {
-        // Use SQLite UPSERT syntax
+        // Use MySQL UPSERT syntax
         $stmt = $this->db->prepare("
             INSERT INTO {$this->table} (setting_key, setting_value, description) 
             VALUES (?, ?, ?) 
-            ON CONFLICT(setting_key) DO UPDATE SET 
-                setting_value = excluded.setting_value, 
-                updated_at = datetime('now')
+            ON DUPLICATE KEY UPDATE 
+                setting_value = VALUES(setting_value), 
+                updated_at = NOW()
         ");
         return $stmt->execute([$key, $value, $description]);
     }

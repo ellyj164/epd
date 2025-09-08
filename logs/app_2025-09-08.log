@@ -22,3 +22,7 @@
 [2025-09-08 18:46:53] [ERROR] Uncaught exception: SQLSTATE[23000]: Integrity constraint violation: 19 CHECK constraint failed: activity_type IN ('view_product', 'add_to_cart', 'purchase', 'search', 'review') in /home/runner/work/epd/epd/includes/models_extended.php on line 360
 [2025-09-08 18:47:26] [ERROR] Uncaught exception: Call to undefined method Vendor::getByUserId() in /home/runner/work/epd/epd/account.php on line 18
 [2025-09-08 19:01:57] [INFO] New user registered: john.doe@example.com
+[2025-09-08 20:42:36] [ERROR] Uncaught exception: SQLSTATE[42000]: Syntax error or access violation: 1064 You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '() 
+            LIMIT 20' at line 5 in /home/runner/work/epd/epd/includes/models.php on line 197
+[2025-09-08 20:42:43] [ERROR] Uncaught exception: SQLSTATE[42000]: Syntax error or access violation: 1064 You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '() 
+            LIMIT 20' at line 5 in /home/runner/work/epd/epd/includes/models.php on line 197
