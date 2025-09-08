@@ -1,0 +1,76 @@
+[Mon Sep  8 13:25:40 2025] PHP 8.3.6 Development Server (http://localhost:8000) started
+[Mon Sep  8 13:25:54 2025] [::1]:45966 Accepted
+[Mon Sep  8 13:25:54 2025] [::1]:45966 [200]: HEAD /
+[Mon Sep  8 13:25:54 2025] [::1]:45966 Closing
+[Mon Sep  8 13:26:16 2025] [::1]:35140 Accepted
+[Mon Sep  8 13:26:16 2025] [::1]:35148 Accepted
+[Mon Sep  8 13:26:16 2025] [::1]:35140 [200]: GET /
+[Mon Sep  8 13:26:16 2025] [::1]:35140 Closing
+[Mon Sep  8 13:26:16 2025] [::1]:35148 [200]: GET /css/styles.css
+[Mon Sep  8 13:26:16 2025] [::1]:35148 Closing
+[Mon Sep  8 13:26:16 2025] [::1]:35154 Accepted
+[Mon Sep  8 13:26:16 2025] [::1]:35154 [200]: GET /js/fezamarket.js
+[Mon Sep  8 13:26:16 2025] [::1]:35154 Closing
+[Mon Sep  8 13:26:16 2025] [::1]:35160 Accepted
+[Mon Sep  8 13:26:16 2025] [::1]:35160 [404]: GET /images/placeholder-product.jpg - No such file or directory
+[Mon Sep  8 13:26:16 2025] [::1]:35160 Closing
+[Mon Sep  8 13:26:16 2025] [::1]:35166 Accepted
+[Mon Sep  8 13:26:16 2025] [::1]:35166 [404]: GET /images/placeholder-product.jpg - No such file or directory
+[Mon Sep  8 13:26:16 2025] [::1]:35166 Closing
+[Mon Sep  8 13:26:16 2025] [::1]:35182 Accepted
+[Mon Sep  8 13:26:16 2025] [::1]:35182 [404]: GET /api/cart/count.php - No such file or directory
+[Mon Sep  8 13:26:16 2025] [::1]:35182 Closing
+[Mon Sep  8 13:26:17 2025] [::1]:35186 Accepted
+[Mon Sep  8 13:26:17 2025] [::1]:35186 [404]: GET /images/banners/trending-banner.jpg - No such file or directory
+[Mon Sep  8 13:26:17 2025] [::1]:35186 Closing
+[Mon Sep  8 13:26:17 2025] [::1]:35202 Accepted
+[Mon Sep  8 13:26:17 2025] [::1]:35202 [404]: GET /images/banners/electronics-banner.jpg - No such file or directory
+[Mon Sep  8 13:26:17 2025] [::1]:35202 Closing
+[Mon Sep  8 13:26:17 2025] [::1]:35206 Accepted
+[Mon Sep  8 13:26:17 2025] [::1]:35206 [404]: GET /images/banners/food-banner.jpg - No such file or directory
+[Mon Sep  8 13:26:17 2025] [::1]:35206 Closing
+[Mon Sep  8 13:26:43 2025] [::1]:59374 Accepted
+[Mon Sep  8 13:26:43 2025] [::1]:59376 Accepted
+[Mon Sep  8 13:26:43 2025] [::1]:59374 [200]: GET /product.php?id=1
+[Mon Sep  8 13:26:43 2025] [::1]:59374 Closing
+[Mon Sep  8 13:27:46 2025] [::1]:59376 Closed without sending a request; it was probably just an unused speculative preconnection
+[Mon Sep  8 13:27:46 2025] [::1]:59376 Closing
+[Mon Sep  8 13:27:46 2025] [::1]:52900 Accepted
+[Mon Sep  8 13:27:46 2025] [::1]:52904 Accepted
+[Mon Sep  8 13:27:46 2025] [::1]:52900 [200]: GET /product.php?id=1
+[Mon Sep  8 13:27:46 2025] [::1]:52900 Closing
+[Mon Sep  8 13:27:46 2025] [::1]:52904 [200]: GET /css/styles.css
+[Mon Sep  8 13:27:46 2025] [::1]:52904 Closing
+[Mon Sep  8 13:27:46 2025] [::1]:52918 Accepted
+[Mon Sep  8 13:27:46 2025] [::1]:52918 [200]: GET /js/fezamarket.js
+[Mon Sep  8 13:27:46 2025] [::1]:52918 Closing
+[Mon Sep  8 13:27:46 2025] [::1]:52920 Accepted
+[Mon Sep  8 13:27:46 2025] [::1]:52920 [404]: GET /images/placeholder-product.jpg - No such file or directory
+[Mon Sep  8 13:27:46 2025] [::1]:52920 Closing
+[Mon Sep  8 13:27:46 2025] [::1]:52924 Accepted
+[Mon Sep  8 13:27:46 2025] [::1]:52924 [404]: GET /api/cart/count.php - No such file or directory
+[Mon Sep  8 13:27:46 2025] [::1]:52924 Closing
+[Mon Sep  8 13:28:09 2025] [::1]:58428 Accepted
+[Mon Sep  8 13:28:09 2025] [::1]:58440 Accepted
+[Mon Sep  8 13:28:09 2025] [::1]:58428 [200]: GET /
+[Mon Sep  8 13:28:09 2025] [::1]:58428 Closing
+[Mon Sep  8 13:28:09 2025] [::1]:58440 [200]: GET /css/styles.css
+[Mon Sep  8 13:28:09 2025] [::1]:58440 Closing
+[Mon Sep  8 13:28:09 2025] [::1]:58450 Accepted
+[Mon Sep  8 13:28:09 2025] [::1]:58450 [200]: GET /js/fezamarket.js
+[Mon Sep  8 13:28:09 2025] [::1]:58450 Closing
+[Mon Sep  8 13:28:09 2025] [::1]:58456 Accepted
+[Mon Sep  8 13:28:09 2025] [::1]:58456 [404]: GET /images/placeholder-product.jpg - No such file or directory
+[Mon Sep  8 13:28:09 2025] [::1]:58456 Closing
+[Mon Sep  8 13:28:09 2025] [::1]:58470 Accepted
+[Mon Sep  8 13:28:09 2025] [::1]:58470 [404]: GET /images/banners/trending-banner.jpg - No such file or directory
+[Mon Sep  8 13:28:09 2025] [::1]:58470 Closing
+[Mon Sep  8 13:28:09 2025] [::1]:58476 Accepted
+[Mon Sep  8 13:28:09 2025] [::1]:58476 [404]: GET /images/banners/electronics-banner.jpg - No such file or directory
+[Mon Sep  8 13:28:09 2025] [::1]:58476 Closing
+[Mon Sep  8 13:28:09 2025] [::1]:58482 Accepted
+[Mon Sep  8 13:28:09 2025] [::1]:58482 [404]: GET /images/banners/food-banner.jpg - No such file or directory
+[Mon Sep  8 13:28:09 2025] [::1]:58482 Closing
+[Mon Sep  8 13:28:09 2025] [::1]:58492 Accepted
+[Mon Sep  8 13:28:09 2025] [::1]:58492 [404]: GET /api/cart/count.php - No such file or directory
+[Mon Sep  8 13:28:09 2025] [::1]:58492 Closing
