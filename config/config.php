@@ -4,16 +4,15 @@
  * E-Commerce Platform
  */
 
-// Database connection settings
+// Database connection settings - MySQL/MariaDB
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'duns1');
 define('DB_USER', 'duns1');
 define('DB_PASS', '');
 define('DB_CHARSET', 'utf8mb4');
 
-// Use SQLite for demo if MySQL is not available
-define('USE_SQLITE', true);
-define('SQLITE_PATH', __DIR__ . '/../database/ecommerce.sqlite');
+// Use MySQL/MariaDB only
+define('USE_SQLITE', false);
 
 // Application settings
 define('APP_NAME', 'E-Commerce Platform');
