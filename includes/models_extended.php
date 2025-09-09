@@ -91,9 +91,9 @@ class Order extends BaseModel {
             SELECT * FROM {$this->table} 
             WHERE user_id = ? 
             ORDER BY created_at DESC 
-            LIMIT {$limit} OFFSET {$offset}
+            LIMIT ? OFFSET ?
         ");
-        $stmt->execute([$userId]);
+        $stmt->execute([$userId, $limit, $offset]);
         return $stmt->fetchAll();
     }
     
@@ -109,12 +109,12 @@ class Order extends BaseModel {
     }
     
     public function updateStatus($orderId, $status) {
-        $stmt = $this->db->prepare("UPDATE {$this->table} SET status = ?, updated_at = NOW() WHERE id = ?");
+        $stmt = $this->db->prepare("UPDATE {$this->table} SET status = ?, updated_at = datetime('now') WHERE id = ?");
         return $stmt->execute([$status, $orderId]);
     }
     
     public function updatePaymentStatus($orderId, $status, $transactionId = null) {
-        $sql = "UPDATE {$this->table} SET payment_status = ?, updated_at = NOW()";
+        $sql = "UPDATE {$this->table} SET payment_status = ?, updated_at = datetime('now')";
         $params = [$status];
         
         if ($transactionId) {
@@ -140,7 +140,7 @@ class Order extends BaseModel {
         ";
         
         if ($limit) {
-            $sql .= " LIMIT {$limit} OFFSET {$offset}";
+            $sql .= " LIMIT ? OFFSET {$offset}";
         }
         
         $stmt = $this->db->prepare($sql);
@@ -199,7 +199,7 @@ class Vendor extends BaseModel {
         ";
         
         if ($limit) {
-            $sql .= " LIMIT {$limit} OFFSET {$offset}";
+            $sql .= " LIMIT ? OFFSET {$offset}";
         }
         
         $stmt = $this->db->prepare($sql);
@@ -273,7 +273,7 @@ class Review extends BaseModel {
         ";
         
         if ($limit) {
-            $sql .= " LIMIT {$limit} OFFSET {$offset}";
+            $sql .= " LIMIT ? OFFSET {$offset}";
         }
         
         $stmt = $this->db->prepare($sql);
@@ -432,7 +432,7 @@ class Recommendation extends BaseModel {
             WHERE ua1.product_id = ? AND p.status = 'active'
             GROUP BY p.id 
             ORDER BY view_count DESC, p.created_at DESC 
-            LIMIT {$limit}
+            LIMIT ?
         ");
         $stmt->execute([$productId]);
         return $stmt->fetchAll();
@@ -449,25 +449,26 @@ class Recommendation extends BaseModel {
             WHERE oi1.product_id = ? AND p.status = 'active'
             GROUP BY p.id 
             ORDER BY purchase_count DESC, p.created_at DESC 
-            LIMIT {$limit}
+            LIMIT ?
         ");
         $stmt->execute([$productId]);
         return $stmt->fetchAll();
     }
     
     public function getTrendingProducts($limit = 8) {
+        // SQLite compatible version
         $stmt = $this->db->prepare("
             SELECT p.*, COUNT(ua.id) as activity_count, MAX(pi.image_url) as image_url
             FROM products p 
             LEFT JOIN user_activities ua ON p.id = ua.product_id 
-                AND ua.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                AND ua.created_at >= datetime('now', '-7 days')
             LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = 1
             WHERE p.status = 'active'
             GROUP BY p.id 
             ORDER BY activity_count DESC, p.created_at DESC 
-            LIMIT {$limit}
+            LIMIT ?
         ");
-        $stmt->execute();
+        $stmt->execute([$limit]);
         return $stmt->fetchAll();
     }
     
@@ -492,7 +493,7 @@ class Recommendation extends BaseModel {
                 )
             GROUP BY p.id 
             ORDER BY user_interest_score DESC, avg_rating DESC, p.featured DESC 
-            LIMIT {$limit}
+            LIMIT ?
         ");
         $stmt->execute([$userId, $userId]);
         return $stmt->fetchAll();
@@ -543,7 +544,7 @@ class Settings extends BaseModel {
             VALUES (?, ?, ?) 
             ON DUPLICATE KEY UPDATE 
                 setting_value = VALUES(setting_value), 
-                updated_at = NOW()
+                updated_at = datetime('now')
         ");
         return $stmt->execute([$key, $value, $description]);
     }

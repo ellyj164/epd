@@ -231,6 +231,20 @@ CREATE TABLE stream_products (
     UNIQUE(stream_id, product_id)
 );
 
+-- Audit log for security and debugging
+CREATE TABLE audit_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    action VARCHAR(100) NOT NULL,
+    resource_type VARCHAR(50),
+    resource_id INTEGER,
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    metadata TEXT, -- JSON string
+    created_at DATETIME DEFAULT (datetime('now')),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
 -- Stream deals
 CREATE TABLE stream_deals (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -1,7 +1,7 @@
 <?php
 /**
- * User Login Page
- * E-Commerce Platform
+ * Forgot Password Page
+ * Live Shopping E-Commerce Platform
  */
 
 require_once __DIR__ . '/includes/init.php';
@@ -13,6 +13,7 @@ if (Session::isLoggedIn()) {
 
 $error = '';
 $success = '';
+$email = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // CSRF protection
@@ -21,41 +22,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Invalid request. Please try again.';
     } else {
         $email = sanitizeInput($_POST['email'] ?? '');
-        $password = $_POST['password'] ?? '';
-        $remember = isset($_POST['remember']);
         
-        if (empty($email) || empty($password)) {
-            $error = 'Please fill in all fields';
+        if (empty($email)) {
+            $error = 'Please enter your email address';
         } elseif (!validateEmail($email)) {
             $error = 'Please enter a valid email address';
         } else {
             $user = new User();
-            $result = $user->authenticate($email, $password);
+            $userData = $user->findByEmail($email);
             
-            if (isset($result['error'])) {
-                $error = $result['error'];
-            } elseif ($result) {
-                // Create secure session
-                createSecureSession($result['id']);
+            if ($userData) {
+                // Generate password reset token
+                $token = generatePasswordResetToken($userData['id']);
                 
-                // Set additional session data
-                Session::set('user_role', $result['role']);
-                Session::set('user_email', $result['email']);
+                // In a real application, you would send this via email
+                // For demo purposes, we'll show it directly
+                $resetLink = APP_URL . "/reset-password.php?token=" . $token;
                 
-                // Log activity
-                Logger::info("User logged in: {$email}");
+                logSecurityEvent($userData['id'], 'password_reset_requested', 'user', $userData['id']);
                 
-                // Redirect to intended page or dashboard
-                $redirect = Session::getIntendedUrl();
-                redirect($redirect);
+                $success = "Password reset instructions have been sent to your email address.<br><br>
+                           <strong>Demo Mode:</strong> Use this link: <a href='{$resetLink}'>Reset Password</a>";
             } else {
-                $error = 'Login failed. Please try again.';
+                // Don't reveal if email exists for security
+                logSecurityEvent(null, 'password_reset_unknown_email', 'user', null, ['email' => $email]);
+                $success = "If an account with that email exists, password reset instructions have been sent.";
             }
         }
     }
 }
 
-$page_title = 'Login';
+$page_title = 'Forgot Password';
 includeHeader($page_title);
 ?>
 
@@ -64,7 +61,8 @@ includeHeader($page_title);
         <div class="col-6">
             <div class="card mt-4">
                 <div class="card-body">
-                    <h1 class="card-title text-center">Login to Your Account</h1>
+                    <h1 class="card-title text-center">Reset Your Password</h1>
+                    <p class="text-center text-muted">Enter your email address and we'll send you a link to reset your password.</p>
                     
                     <?php if ($error): ?>
                         <div class="alert alert-error"><?php echo $error; ?></div>
@@ -72,7 +70,7 @@ includeHeader($page_title);
                     
                     <?php if ($success): ?>
                         <div class="alert alert-success"><?php echo $success; ?></div>
-                    <?php endif; ?>
+                    <?php else: ?>
                     
                     <form method="POST" class="validate-form">
                         <input type="hidden" name="csrf_token" value="<?php echo csrfToken(); ?>">
@@ -80,28 +78,19 @@ includeHeader($page_title);
                         <div class="form-group">
                             <label for="email" class="form-label">Email Address</label>
                             <input type="email" id="email" name="email" class="form-control" required
-                                   value="<?php echo htmlspecialchars($email ?? ''); ?>">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="password" class="form-label">Password</label>
-                            <input type="password" id="password" name="password" class="form-control" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label class="form-label">
-                                <input type="checkbox" name="remember" <?php echo isset($_POST['remember']) ? 'checked' : ''; ?>>
-                                Remember me
-                            </label>
+                                   value="<?php echo htmlspecialchars($email); ?>"
+                                   placeholder="Enter your email address">
                         </div>
                         
                         <button type="submit" class="btn btn-lg" style="width: 100%; margin-bottom: 1rem;">
-                            Login
+                            Send Reset Link
                         </button>
                     </form>
                     
+                    <?php endif; ?>
+                    
                     <div class="text-center">
-                        <p><a href="/forgot-password.php">Forgot your password?</a></p>
+                        <p><a href="/login.php">← Back to Login</a></p>
                         <p>Don't have an account? <a href="/register.php">Register here</a></p>
                     </div>
                 </div>

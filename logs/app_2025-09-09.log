@@ -1,0 +1,5 @@
+[2025-09-09 15:46:52] [INFO] User logged in: admin@ecommerce.com
+[2025-09-09 15:46:52] [ERROR] Uncaught exception: SQLSTATE[HY000]: General error: 1 near "7": syntax error in /home/runner/work/epd/epd/includes/models_extended.php on line 459
+[2025-09-09 15:48:30] [ERROR] Uncaught exception: SQLSTATE[HY000]: General error: 1 no such table: product_images in /home/runner/work/epd/epd/includes/models_extended.php on line 460
+[2025-09-09 15:48:43] [ERROR] Uncaught exception: SQLSTATE[HY000]: General error: 1 no such column: ua.product_id in /home/runner/work/epd/epd/includes/models_extended.php on line 460
+[2025-09-09 15:49:02] [ERROR] Uncaught exception: SQLSTATE[HY000]: General error: 1 no such function: RAND in /home/runner/work/epd/epd/includes/models.php on line 220
