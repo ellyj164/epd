@@ -22,11 +22,34 @@ class User extends BaseModel {
     }
     
     public function authenticate($email, $password) {
-        $user = $this->findByEmail($email);
-        if ($user && verifyPassword($password, $user['password_hash'])) {
-            return $user;
+        // Check rate limiting
+        if (!checkLoginAttempts($email)) {
+            logSecurityEvent(null, 'login_blocked_rate_limit', 'user', null, ['email' => $email]);
+            return ['error' => 'Too many login attempts. Please try again later.'];
         }
-        return false;
+        
+        $user = $this->findByEmail($email);
+        
+        if ($user && verifyPassword($password, $user['password_hash'])) {
+            // Check if user account is active
+            if ($user['status'] !== 'active') {
+                logLoginAttempt($email, false);
+                logSecurityEvent($user['id'], 'login_failed_inactive', 'user', $user['id']);
+                return ['error' => 'Account is not active. Please contact support.'];
+            }
+            
+            // Successful login
+            logLoginAttempt($email, true);
+            clearLoginAttempts($email);
+            logSecurityEvent($user['id'], 'login_success', 'user', $user['id']);
+            
+            return $user;
+        } else {
+            // Failed login
+            logLoginAttempt($email, false);
+            logSecurityEvent(null, 'login_failed', 'user', null, ['email' => $email]);
+            return ['error' => 'Invalid email or password.'];
+        }
     }
     
     public function register($data) {
@@ -199,10 +222,10 @@ class Product extends BaseModel {
             FROM {$this->table} p 
             LEFT JOIN vendors v ON p.vendor_id = v.id 
             WHERE p.status = 'active' 
-            ORDER BY RAND() 
-            LIMIT {$limit}
+            ORDER BY RANDOM()
+            LIMIT ?
         ");
-        $stmt->execute();
+        $stmt->execute([$limit]);
         return $stmt->fetchAll();
     }
     

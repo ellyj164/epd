@@ -11,8 +11,9 @@ define('DB_USER', 'duns1');
 define('DB_PASS', '');
 define('DB_CHARSET', 'utf8mb4');
 
-// Use MySQL/MariaDB only
-define('USE_SQLITE', false);
+// Use SQLite for development when MySQL unavailable
+define('USE_SQLITE', true);
+define('SQLITE_PATH', __DIR__ . '/../database/ecommerce.db');
 
 // Application settings
 define('APP_NAME', 'E-Commerce Platform');

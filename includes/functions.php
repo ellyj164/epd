@@ -49,15 +49,41 @@ class Session {
     
     public static function requireLogin() {
         if (!self::isLoggedIn()) {
+            // Store intended URL for redirect after login
+            if (!empty($_SERVER['REQUEST_URI'])) {
+                self::set('intended_url', $_SERVER['REQUEST_URI']);
+            }
             redirect('/login.php');
+        }
+        
+        // Validate session token if present
+        $userId = self::getUserId();
+        $sessionToken = self::get('session_token');
+        
+        if ($userId && $sessionToken && !validateSessionToken($userId, $sessionToken)) {
+            // Invalid session, logout user
+            self::destroy();
+            redirect('/login.php?error=session_expired');
         }
     }
     
     public static function requireRole($role) {
         self::requireLogin();
-        if (self::getUserRole() !== $role) {
-            redirect('/unauthorized.php');
+        
+        if (self::getUserRole() !== $role && self::getUserRole() !== 'admin') {
+            logSecurityEvent(self::getUserId(), 'access_denied', 'page', null, [
+                'required_role' => $role,
+                'user_role' => self::getUserRole(),
+                'url' => $_SERVER['REQUEST_URI'] ?? ''
+            ]);
+            redirect('/login.php?error=access_denied');
         }
+    }
+    
+    public static function getIntendedUrl() {
+        $url = self::get('intended_url', '/');
+        self::remove('intended_url');
+        return $url;
     }
 }
 
@@ -73,7 +99,12 @@ function validateEmail($email) {
 }
 
 function hashPassword($password) {
-    return password_hash($password, PASSWORD_BCRYPT, ['cost' => BCRYPT_COST]);
+    // Use ARGON2ID for maximum security
+    return password_hash($password, PASSWORD_ARGON2ID, [
+        'memory_cost' => 65536, // 64 MB
+        'time_cost' => 4,       // 4 iterations
+        'threads' => 3,         // 3 parallel threads
+    ]);
 }
 
 function verifyPassword($password, $hash) {
@@ -93,6 +124,225 @@ function csrfToken() {
 
 function verifyCsrfToken($token) {
     return hash_equals(Session::get('csrf_token', ''), $token);
+}
+
+/**
+ * Enhanced Security Functions for Live Shopping Platform
+ */
+
+// Rate limiting for login attempts
+function checkLoginAttempts($email, $maxAttempts = 5, $windowMinutes = 15) {
+    $db = Database::getInstance()->getConnection();
+    
+    $stmt = $db->prepare("
+        SELECT COUNT(*) 
+        FROM login_attempts 
+        WHERE email = ? 
+        AND attempted_at > datetime('now', '-{$windowMinutes} minutes')
+        AND success = 0
+    ");
+    $stmt->execute([$email]);
+    $attempts = $stmt->fetchColumn();
+    
+    return $attempts < $maxAttempts;
+}
+
+// Log login attempt
+function logLoginAttempt($email, $success = false) {
+    $db = Database::getInstance()->getConnection();
+    
+    $stmt = $db->prepare("
+        INSERT INTO login_attempts (email, ip_address, attempted_at, success) 
+        VALUES (?, ?, datetime('now'), ?)
+    ");
+    $stmt->execute([$email, getClientIP(), $success ? 1 : 0]);
+}
+
+// Clear successful login attempts
+function clearLoginAttempts($email) {
+    $db = Database::getInstance()->getConnection();
+    
+    $stmt = $db->prepare("DELETE FROM login_attempts WHERE email = ?");
+    $stmt->execute([$email]);
+}
+
+// Generate secure session token
+function generateSecureToken($length = 64) {
+    return bin2hex(random_bytes($length));
+}
+
+// Create secure session
+function createSecureSession($userId) {
+    // Regenerate session ID for security
+    session_regenerate_id(true);
+    
+    $db = Database::getInstance()->getConnection();
+    $sessionToken = generateSecureToken();
+    $csrfToken = generateToken();
+    
+    // Store session in database
+    $stmt = $db->prepare("
+        INSERT INTO user_sessions (user_id, session_token, csrf_token, ip_address, user_agent, expires_at, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, datetime('now', '+1 hour'), datetime('now'), datetime('now'))
+    ");
+    
+    $stmt->execute([
+        $userId,
+        $sessionToken,
+        $csrfToken,
+        getClientIP(),
+        $_SERVER['HTTP_USER_AGENT'] ?? '',
+    ]);
+    
+    // Set session data
+    Session::set('user_id', $userId);
+    Session::set('session_token', $sessionToken);
+    Session::set('csrf_token', $csrfToken);
+    
+    // Set secure cookies
+    setSecureCookie('session_token', $sessionToken);
+    
+    return $sessionToken;
+}
+
+// Validate session token
+function validateSessionToken($userId, $sessionToken) {
+    $db = Database::getInstance()->getConnection();
+    
+    $stmt = $db->prepare("
+        SELECT id FROM user_sessions 
+        WHERE user_id = ? AND session_token = ? AND expires_at > datetime('now')
+    ");
+    $stmt->execute([$userId, $sessionToken]);
+    
+    return $stmt->fetchColumn() !== false;
+}
+
+// Set secure cookie
+function setSecureCookie($name, $value, $expire = 3600) {
+    setcookie($name, $value, [
+        'expires' => time() + $expire,
+        'path' => '/',
+        'domain' => '',
+        'secure' => isset($_SERVER['HTTPS']),
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
+}
+
+// Email verification token
+function generateEmailVerificationToken($userId) {
+    $db = Database::getInstance()->getConnection();
+    $token = generateSecureToken();
+    
+    $stmt = $db->prepare("
+        INSERT INTO email_verification_tokens (user_id, token, expires_at, created_at)
+        VALUES (?, ?, datetime('now', '+24 hours'), datetime('now'))
+    ");
+    $stmt->execute([$userId, $token]);
+    
+    return $token;
+}
+
+// Verify email token
+function verifyEmailToken($token) {
+    $db = Database::getInstance()->getConnection();
+    
+    $stmt = $db->prepare("
+        SELECT user_id FROM email_verification_tokens 
+        WHERE token = ? AND expires_at > datetime('now') AND used = 0
+    ");
+    $stmt->execute([$token]);
+    $result = $stmt->fetch();
+    
+    if ($result) {
+        // Mark token as used
+        $updateStmt = $db->prepare("UPDATE email_verification_tokens SET used = 1 WHERE token = ?");
+        $updateStmt->execute([$token]);
+        
+        // Mark user as verified
+        $userStmt = $db->prepare("UPDATE users SET email_verified = 1 WHERE id = ?");
+        $userStmt->execute([$result['user_id']]);
+        
+        return $result['user_id'];
+    }
+    
+    return false;
+}
+
+// Password reset token
+function generatePasswordResetToken($userId) {
+    $db = Database::getInstance()->getConnection();
+    $token = generateSecureToken();
+    
+    $stmt = $db->prepare("
+        INSERT INTO password_reset_tokens (user_id, token, expires_at, created_at)
+        VALUES (?, ?, datetime('now', '+1 hour'), datetime('now'))
+    ");
+    $stmt->execute([$userId, $token]);
+    
+    return $token;
+}
+
+// Verify password reset token
+function verifyPasswordResetToken($token) {
+    $db = Database::getInstance()->getConnection();
+    
+    $stmt = $db->prepare("
+        SELECT user_id FROM password_reset_tokens 
+        WHERE token = ? AND expires_at > datetime('now') AND used = 0
+    ");
+    $stmt->execute([$token]);
+    
+    return $stmt->fetch();
+}
+
+// Use password reset token
+function usePasswordResetToken($token, $newPassword) {
+    $db = Database::getInstance()->getConnection();
+    
+    $tokenData = verifyPasswordResetToken($token);
+    if (!$tokenData) {
+        return false;
+    }
+    
+    try {
+        $db->beginTransaction();
+        
+        // Update password
+        $stmt = $db->prepare("UPDATE users SET password_hash = ? WHERE id = ?");
+        $stmt->execute([hashPassword($newPassword), $tokenData['user_id']]);
+        
+        // Mark token as used
+        $stmt = $db->prepare("UPDATE password_reset_tokens SET used = 1 WHERE token = ?");
+        $stmt->execute([$token]);
+        
+        $db->commit();
+        return true;
+    } catch (Exception $e) {
+        $db->rollBack();
+        return false;
+    }
+}
+
+// Audit logging
+function logSecurityEvent($userId, $action, $resourceType = null, $resourceId = null, $metadata = []) {
+    $db = Database::getInstance()->getConnection();
+    
+    $stmt = $db->prepare("
+        INSERT INTO audit_logs (user_id, action, resource_type, resource_id, ip_address, user_agent, metadata, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+    ");
+    
+    $stmt->execute([
+        $userId,
+        $action,
+        $resourceType,
+        $resourceId,
+        getClientIP(),
+        $_SERVER['HTTP_USER_AGENT'] ?? '',
+        json_encode($metadata)
+    ]);
 }
 
 /**
