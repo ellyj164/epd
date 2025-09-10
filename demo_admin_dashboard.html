@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - E-Commerce Platform</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f8f9fa; }
+        
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .d-flex { display: flex; }
+        .justify-between { justify-content: space-between; }
+        .align-center { align-items: center; }
+        .mb-4 { margin-bottom: 1.5rem; }
+        .gap-2 { gap: 0.5rem; }
+        
+        .btn { 
+            padding: 8px 16px; 
+            border: 1px solid #ddd; 
+            border-radius: 6px; 
+            text-decoration: none; 
+            font-size: 14px; 
+            cursor: pointer; 
+        }
+        .btn-primary { background: #007bff; color: white; border-color: #007bff; }
+        .btn-outline { background: white; color: #6c757d; }
+        .btn:hover { opacity: 0.9; }
+        
+        .card { 
+            background: white; 
+            border: 1px solid #e9ecef; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+            margin-bottom: 1.5rem; 
+        }
+        .card-header { 
+            padding: 1rem 1.25rem; 
+            border-bottom: 1px solid #e9ecef; 
+            font-weight: 600; 
+            background: #f8f9fa; 
+        }
+        .card-body { padding: 1.25rem; }
+        .card-title { margin-bottom: 0.5rem; font-size: 1.25rem; }
+        
+        .stats-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
+            gap: 1.5rem; 
+            margin-bottom: 2rem; 
+        }
+        .stat-card { text-align: center; }
+        .stat-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+        .stat-number { font-size: 2rem; font-weight: bold; margin: 0.5rem 0; }
+        .stat-label { color: #6c757d; }
+        .stat-details { display: flex; justify-content: space-between; font-size: 0.875rem; margin-top: 0.5rem; }
+        
+        .text-success { color: #28a745; }
+        .text-warning { color: #ffc107; }
+        .text-info { color: #17a2b8; }
+        .text-muted { color: #6c757d; }
+        
+        .row { display: flex; flex-wrap: wrap; margin: -0.75rem; }
+        .col-md-6 { flex: 0 0 50%; max-width: 50%; padding: 0.75rem; }
+        .col-md-3 { flex: 0 0 25%; max-width: 25%; padding: 0.75rem; }
+        
+        .health-check { 
+            border-left: 4px solid #28a745; 
+            background: linear-gradient(45deg, #f8f9fa 25%, transparent 25%), 
+                        linear-gradient(-45deg, #f8f9fa 25%, transparent 25%), 
+                        linear-gradient(45deg, transparent 75%, #f8f9fa 75%), 
+                        linear-gradient(-45deg, transparent 75%, #f8f9fa 75%);
+        }
+        
+        .health-item { display: flex; align-items: center; margin-bottom: 1rem; }
+        .health-icon { font-size: 18px; margin-right: 8px; }
+        
+        .order-item, .user-item { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 0.75rem 0; 
+            border-bottom: 1px solid #e9ecef; 
+        }
+        
+        .badge { 
+            padding: 0.25rem 0.5rem; 
+            border-radius: 4px; 
+            font-size: 0.75rem; 
+            font-weight: bold; 
+        }
+        .badge-success { background: #28a745; color: white; }
+        .badge-warning { background: #ffc107; color: #212529; }
+        .badge-info { background: #17a2b8; color: white; }
+        
+        .avatar { 
+            width: 40px; 
+            height: 40px; 
+            border-radius: 50%; 
+            background: #6c757d; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            color: white; 
+            font-weight: bold; 
+            margin-right: 1rem; 
+        }
+        
+        .quick-actions { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+            gap: 1rem; 
+        }
+        .quick-action { 
+            display: block; 
+            padding: 1rem; 
+            text-align: center; 
+            background: white; 
+            border: 1px solid #e9ecef; 
+            border-radius: 8px; 
+            text-decoration: none; 
+            color: #495057; 
+            transition: all 0.2s; 
+        }
+        .quick-action:hover { 
+            background: #f8f9fa; 
+            border-color: #007bff; 
+            transform: translateY(-2px); 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="d-flex justify-between align-center mb-4">
+            <h1>🎯 Admin Dashboard</h1>
+            <div class="d-flex gap-2">
+                <a href="#" class="btn btn-outline">👥 Users</a>
+                <a href="#" class="btn btn-outline">📦 Products</a>
+                <a href="#" class="btn btn-outline">📋 Orders</a>
+                <a href="#" class="btn btn-outline">🏪 Vendors</a>
+                <a href="#" class="btn btn-outline">📊 Analytics</a>
+                <a href="#" class="btn btn-primary">⚙️ Settings</a>
+            </div>
+        </div>
+
+        <!-- System Health Status -->
+        <div class="card health-check">
+            <div class="card-body">
+                <h5 class="card-title">🏥 System Health</h5>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="health-item">
+                            <span class="health-icon" style="color: #28a745;">✅</span>
+                            <div>
+                                <strong>Database</strong><br>
+                                <small class="text-muted">Connection successful</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="health-item">
+                            <span class="health-icon" style="color: #28a745;">✅</span>
+                            <div>
+                                <strong>Directories</strong><br>
+                                <small class="text-muted">All directories writable</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="health-item">
+                            <span class="health-icon" style="color: #ffc107;">⚠️</span>
+                            <div>
+                                <strong>Config</strong><br>
+                                <small class="text-muted">Default secret key detected</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="health-item">
+                            <span class="health-icon" style="color: #28a745;">✅</span>
+                            <div>
+                                <strong>Email</strong><br>
+                                <small class="text-muted">SMTP configured</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Enhanced Statistics Cards -->
+        <div class="stats-grid">
+            <div class="card">
+                <div class="card-body stat-card">
+                    <div class="stat-icon" style="color: #007bff;">👥</div>
+                    <div class="stat-number">2,547</div>
+                    <div class="stat-label">Total Users</div>
+                    <div class="stat-details">
+                        <span class="text-success">Active: 2,341</span>
+                        <span class="text-warning">Pending: 206</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-body stat-card">
+                    <div class="stat-icon" style="color: #28a745;">📦</div>
+                    <div class="stat-number">8,934</div>
+                    <div class="stat-label">Total Products</div>
+                    <div class="stat-details">
+                        <span class="text-success">Active: 8,734</span>
+                        <span class="text-info">Categories: 47</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-body stat-card">
+                    <div class="stat-icon" style="color: #ffc107;">📋</div>
+                    <div class="stat-number">1,823</div>
+                    <div class="stat-label">Total Orders</div>
+                    <div class="stat-details">
+                        <span class="text-warning">Pending: 45</span>
+                        <span class="text-info">Processing: 123</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-body stat-card">
+                    <div class="stat-icon" style="color: #17a2b8;">💰</div>
+                    <div class="stat-number">$347,892</div>
+                    <div class="stat-label">Total Revenue</div>
+                    <div class="stat-details">
+                        <span class="text-success">Today: $12,456</span>
+                        <span class="text-info">Avg: $190.67</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body stat-card">
+                    <div class="stat-icon" style="color: #6f42c1;">🏪</div>
+                    <div class="stat-number">156</div>
+                    <div class="stat-label">Total Vendors</div>
+                    <div class="stat-details">
+                        <span class="text-warning">Pending: 8</span>
+                        <span class="text-success">Active: 148</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Dashboard Content -->
+        <div class="row">
+            <!-- Recent Orders -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header d-flex justify-between align-center">
+                        <h5>📋 Recent Orders</h5>
+                        <a href="#" class="btn btn-outline">View All</a>
+                    </div>
+                    <div class="card-body">
+                        <div class="order-item">
+                            <div>
+                                <strong>#ORD-2024-001</strong><br>
+                                <small class="text-muted">Jan 15, 2024 2:30 PM | $299.99</small>
+                            </div>
+                            <div style="text-align: right;">
+                                <span class="badge badge-success">Delivered</span><br>
+                                <small class="text-muted">john@example.com</small>
+                            </div>
+                        </div>
+                        
+                        <div class="order-item">
+                            <div>
+                                <strong>#ORD-2024-002</strong><br>
+                                <small class="text-muted">Jan 15, 2024 1:15 PM | $156.50</small>
+                            </div>
+                            <div style="text-align: right;">
+                                <span class="badge badge-info">Processing</span><br>
+                                <small class="text-muted">sarah@example.com</small>
+                            </div>
+                        </div>
+                        
+                        <div class="order-item">
+                            <div>
+                                <strong>#ORD-2024-003</strong><br>
+                                <small class="text-muted">Jan 15, 2024 11:45 AM | $89.99</small>
+                            </div>
+                            <div style="text-align: right;">
+                                <span class="badge badge-warning">Pending</span><br>
+                                <small class="text-muted">mike@example.com</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Users -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header d-flex justify-between align-center">
+                        <h5>👥 Recent Registrations</h5>
+                        <a href="#" class="btn btn-outline">View All</a>
+                    </div>
+                    <div class="card-body">
+                        <div class="user-item">
+                            <div class="d-flex align-center">
+                                <div class="avatar">JD</div>
+                                <div>
+                                    <strong>John Doe</strong><br>
+                                    <small class="text-muted">john@example.com | Customer</small>
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <span class="badge badge-success">Active</span><br>
+                                <small class="text-muted">Jan 15, 2024</small>
+                            </div>
+                        </div>
+                        
+                        <div class="user-item">
+                            <div class="d-flex align-center">
+                                <div class="avatar">SM</div>
+                                <div>
+                                    <strong>Sarah Miller</strong><br>
+                                    <small class="text-muted">sarah@example.com | Vendor</small>
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <span class="badge badge-warning">Pending</span><br>
+                                <small class="text-muted">Jan 14, 2024</small>
+                            </div>
+                        </div>
+                        
+                        <div class="user-item">
+                            <div class="d-flex align-center">
+                                <div class="avatar">RJ</div>
+                                <div>
+                                    <strong>Robert Johnson</strong><br>
+                                    <small class="text-muted">robert@example.com | Customer</small>
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <span class="badge badge-success">Active</span><br>
+                                <small class="text-muted">Jan 14, 2024</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-header">
+                <h5>🚀 Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="quick-actions">
+                    <a href="#" class="quick-action">
+                        ➕ Add Product
+                    </a>
+                    <a href="#" class="quick-action">
+                        👤 Create User
+                    </a>
+                    <a href="#" class="quick-action">
+                        🗂️ Manage Categories
+                    </a>
+                    <a href="#" class="quick-action">
+                        📊 View Reports
+                    </a>
+                    <a href="#" class="quick-action">
+                        🎟️ Manage Coupons
+                    </a>
+                    <a href="#" class="quick-action">
+                        📧 Email Campaigns
+                    </a>
+                    <a href="#" class="quick-action">
+                        🚚 Shipping Settings
+                    </a>
+                    <a href="#" class="quick-action">
+                        🔒 Security & Audit
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simulate real-time updates
+        setTimeout(() => {
+            document.querySelector('.stat-number').textContent = '2,548';
+            document.querySelector('.text-success').textContent = 'Active: 2,342';
+        }, 3000);
+
+        // Add hover effects
+        document.querySelectorAll('.quick-action').forEach(action => {
+            action.addEventListener('mouseenter', (e) => {
+                e.target.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
+            });
+            action.addEventListener('mouseleave', (e) => {
+                e.target.style.boxShadow = 'none';
+            });
+        });
+    </script>
+</body>
+</html>
