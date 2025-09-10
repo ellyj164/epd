@@ -6,6 +6,7 @@
  */
 
 require_once __DIR__ . '/config/config.php';
+require_once __DIR__ . '/includes/db.php';
 
 echo "=== Testing MySQL/MariaDB Connection ===\n\n";
 
@@ -27,9 +28,7 @@ echo "✓ PDO MySQL extension is loaded\n";
 
 // Test database connection
 try {
-    $dsn = "mysql:host=" . DB_HOST . ";charset=" . DB_CHARSET;
-    $pdo = new PDO($dsn, DB_USER, DB_PASS);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $pdo = db();
     echo "✓ Connected to MySQL server\n";
     
     // Test database existence

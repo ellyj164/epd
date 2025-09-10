@@ -6,6 +6,7 @@
  */
 
 require_once __DIR__ . '/config/config.php';
+require_once __DIR__ . '/includes/db.php';
 
 echo "=== Live Shopping Platform Database Setup (MariaDB Only) ===\n\n";
 
@@ -56,6 +57,7 @@ try {
     }
     
     // First, connect without specifying database to create it
+    // For setup, we'll use direct connection first, then switch to db() function
     $dsn = "mysql:host=" . DB_HOST . ";charset=" . DB_CHARSET;
     $pdo = new PDO($dsn, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -66,8 +68,8 @@ try {
     $pdo->exec("CREATE DATABASE IF NOT EXISTS `" . DB_NAME . "` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     echo "✓ Database '" . DB_NAME . "' created/verified\n";
     
-    // Switch to the database
-    $pdo->exec("USE `" . DB_NAME . "`");
+    // Now use the standardized db() function for the rest
+    $pdo = db();
     echo "✓ Using database '" . DB_NAME . "'\n";
     
     echo "\n";
