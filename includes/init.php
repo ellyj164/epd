@@ -21,6 +21,9 @@ require_once __DIR__ . '/helpers.php';
 // Load database connection
 require_once __DIR__ . '/database.php';
 
+// Load email system
+require_once __DIR__ . '/email.php';
+
 // Load models
 require_once __DIR__ . '/models.php';
 require_once __DIR__ . '/models_extended.php';

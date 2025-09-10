@@ -67,6 +67,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             Session::set('user_email', $email);
                             Session::set('seller_registration_type', $businessType);
                             
+                            // Send welcome email
+                            $newUser = $user->find($userId);
+                            sendWelcomeEmail($newUser);
+                            
                             // Redirect to step 2
                             redirect(sellerUrl('register?step=2'));
                         } else {
@@ -103,6 +107,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ];
                 
                 if ($vendor->create($vendorData)) {
+                    // Send seller registration notification to admin
+                    // TODO: Implement admin notification
+                    
                     redirect(sellerUrl('onboarding'));
                 } else {
                     $error = 'Failed to create seller profile. Please try again.';
