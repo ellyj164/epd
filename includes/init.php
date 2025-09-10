@@ -15,6 +15,9 @@ require_once __DIR__ . '/../config/config.php';
 // Load core functions
 require_once __DIR__ . '/functions.php';
 
+// Load URL helpers and routing
+require_once __DIR__ . '/helpers.php';
+
 // Load database connection
 require_once __DIR__ . '/database.php';
 
