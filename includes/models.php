@@ -289,7 +289,7 @@ class Product extends BaseModel {
             FROM {$this->table} p 
             LEFT JOIN vendors v ON p.vendor_id = v.id 
             WHERE p.status = 'active' 
-            ORDER BY RANDOM()
+            ORDER BY RAND()
             LIMIT ?
         ");
         $stmt->execute([$limit]);
