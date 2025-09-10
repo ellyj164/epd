@@ -18,6 +18,9 @@ if (session_status() === PHP_SESSION_NONE) {
 // Load configuration (includes environment variables)
 require_once __DIR__ . '/../config/config.php';
 
+// Load standardized database access
+require_once __DIR__ . '/db.php';
+
 // Load core functions
 require_once __DIR__ . '/functions.php';
 

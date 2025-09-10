@@ -2,31 +2,21 @@
 /**
  * Database Connection Class
  * E-Commerce Platform
+ * 
+ * DEPRECATED: Use db() function from db.php instead
+ * This class is maintained for backward compatibility
  */
+
+// Load standardized database access
+require_once __DIR__ . '/db.php';
 
 class Database {
     private static $instance = null;
     private $connection;
     
     private function __construct() {
-        try {
-            // Use MariaDB only - removed SQLite support
-            $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
-            $options = [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_EMULATE_PREPARES => false,
-                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"
-            ];
-            
-            $this->connection = new PDO($dsn, DB_USER, DB_PASS, $options);
-        } catch (PDOException $e) {
-            if (DEBUG_MODE) {
-                throw new Exception("MariaDB connection failed: " . $e->getMessage());
-            } else {
-                throw new Exception("Database connection failed");
-            }
-        }
+        // Use the standardized db() function
+        $this->connection = db();
     }
     
     public static function getInstance() {
@@ -73,13 +63,15 @@ class Database {
 
 /**
  * Base Model Class
+ * DEPRECATED: Use db() function directly instead
+ * This class is maintained for backward compatibility
  */
 abstract class BaseModel {
     protected $db;
     protected $table;
     
     public function __construct() {
-        $this->db = Database::getInstance()->getConnection();
+        $this->db = db(); // Use standardized function
     }
     
     public function find($id) {

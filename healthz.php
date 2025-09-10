@@ -4,34 +4,33 @@
  * Returns basic application health status
  */
 
-require_once __DIR__ . '/includes/init.php';
+require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/config/config.php';
 
 header('Content-Type: application/json');
 
-try {
-    // Test database connection
-    $db = Database::getInstance()->getConnection();
-    $db->query("SELECT 1");
-    
+// Test database connection using db_ping()
+$database_status = db_ping();
+
+if ($database_status) {
     $response = [
         'status' => 'healthy',
         'timestamp' => date('c'),
-        'version' => APP_VERSION,
-        'environment' => APP_ENV,
+        'version' => defined('APP_VERSION') ? APP_VERSION : '2.0.0',
+        'environment' => defined('APP_ENV') ? APP_ENV : 'unknown',
         'checks' => [
             'database' => 'ok'
         ]
     ];
     
     http_response_code(200);
-    
-} catch (Exception $e) {
+} else {
     $response = [
         'status' => 'unhealthy',
         'timestamp' => date('c'),
-        'version' => APP_VERSION,
-        'environment' => APP_ENV,
-        'error' => DEBUG_MODE ? $e->getMessage() : 'Database connectivity issue',
+        'version' => defined('APP_VERSION') ? APP_VERSION : '2.0.0',
+        'environment' => defined('APP_ENV') ? APP_ENV : 'unknown',
+        'error' => 'Database connectivity issue',
         'checks' => [
             'database' => 'error'
         ]
