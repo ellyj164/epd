@@ -143,7 +143,7 @@ function checkLoginAttempts($email, $maxAttempts = 5, $windowMinutes = 15) {
         SELECT COUNT(*) 
         FROM login_attempts 
         WHERE email = ? 
-        AND attempted_at > datetime('now', '-{$windowMinutes} minutes')
+        AND attempted_at > DATE_SUB(NOW(), INTERVAL {$windowMinutes} MINUTE)
         AND success = 0
     ");
     $stmt->execute([$email]);
@@ -158,7 +158,7 @@ function logLoginAttempt($email, $success = false) {
     
     $stmt = $db->prepare("
         INSERT INTO login_attempts (email, ip_address, attempted_at, success) 
-        VALUES (?, ?, datetime('now'), ?)
+        VALUES (?, ?, NOW(), ?)
     ");
     $stmt->execute([$email, getClientIP(), $success ? 1 : 0]);
 }
@@ -188,7 +188,7 @@ function createSecureSession($userId) {
     // Store session in database
     $stmt = $db->prepare("
         INSERT INTO user_sessions (user_id, session_token, csrf_token, ip_address, user_agent, expires_at, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, datetime('now', '+1 hour'), datetime('now'), datetime('now'))
+        VALUES (?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR), NOW(), NOW())
     ");
     
     $stmt->execute([
@@ -216,7 +216,7 @@ function validateSessionToken($userId, $sessionToken) {
     
     $stmt = $db->prepare("
         SELECT id FROM user_sessions 
-        WHERE user_id = ? AND session_token = ? AND expires_at > datetime('now')
+        WHERE user_id = ? AND session_token = ? AND expires_at > NOW()
     ");
     $stmt->execute([$userId, $sessionToken]);
     
@@ -242,7 +242,7 @@ function generateEmailVerificationToken($userId) {
     
     $stmt = $db->prepare("
         INSERT INTO email_verification_tokens (user_id, token, expires_at, created_at)
-        VALUES (?, ?, datetime('now', '+24 hours'), datetime('now'))
+        VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 24 HOUR), NOW())
     ");
     $stmt->execute([$userId, $token]);
     
@@ -255,7 +255,7 @@ function verifyEmailToken($token) {
     
     $stmt = $db->prepare("
         SELECT user_id FROM email_verification_tokens 
-        WHERE token = ? AND expires_at > datetime('now') AND used = 0
+        WHERE token = ? AND expires_at > NOW() AND used = 0
     ");
     $stmt->execute([$token]);
     $result = $stmt->fetch();
@@ -282,7 +282,7 @@ function generatePasswordResetToken($userId) {
     
     $stmt = $db->prepare("
         INSERT INTO password_reset_tokens (user_id, token, expires_at, created_at)
-        VALUES (?, ?, datetime('now', '+1 hour'), datetime('now'))
+        VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR), NOW())
     ");
     $stmt->execute([$userId, $token]);
     
@@ -295,7 +295,7 @@ function verifyPasswordResetToken($token) {
     
     $stmt = $db->prepare("
         SELECT user_id FROM password_reset_tokens 
-        WHERE token = ? AND expires_at > datetime('now') AND used = 0
+        WHERE token = ? AND expires_at > NOW() AND used = 0
     ");
     $stmt->execute([$token]);
     
@@ -336,7 +336,7 @@ function logSecurityEvent($userId, $action, $resourceType = null, $resourceId = 
     
     $stmt = $db->prepare("
         INSERT INTO audit_logs (user_id, action, resource_type, resource_id, ip_address, user_agent, metadata, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
     ");
     
     $stmt->execute([
