@@ -174,7 +174,8 @@ function logLoginAttempt($email, $success = false) {
 function clearLoginAttempts($email) {
     $db = Database::getInstance()->getConnection();
     
-    $stmt = $db->prepare("DELETE FROM login_attempts WHERE email = ?");
+    // Only clear failed login attempts, keep successful ones for audit trail
+    $stmt = $db->prepare("DELETE FROM login_attempts WHERE email = ? AND success = 0");
     $stmt->execute([$email]);
 }
 

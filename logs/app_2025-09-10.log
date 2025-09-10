@@ -16,3 +16,23 @@
 [2025-09-10 19:52:14] [ERROR] Email send failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'to_email' in 'field list'
 [2025-09-10 19:52:14] [ERROR] Failed to send verification email to user 7
 [2025-09-10 19:52:14] [INFO] User registered successfully but email sending failed: testuser1757533934@example.com
+[2025-09-10 19:52:58] [ERROR] Email send failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'to_email' in 'field list'
+[2025-09-10 19:52:58] [ERROR] Failed to send verification email to user 8
+[2025-09-10 19:52:58] [INFO] User registered successfully but email sending failed: webtest1757533978@example.com
+[2025-09-10 19:52:58] [INFO] New user registered: webtest1757533978@example.com
+[2025-09-10 19:54:20] [ERROR] Email send failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'to_email' in 'field list'
+[2025-09-10 19:54:20] [ERROR] Failed to send verification email to user 9
+[2025-09-10 19:54:20] [INFO] User registered successfully but email sending failed: fulltest1757534060@example.com
+[2025-09-10 19:56:07] [ERROR] Email send failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'to_email' in 'field list'
+[2025-09-10 19:56:07] [ERROR] Failed to send verification email to user 10
+[2025-09-10 19:56:07] [INFO] User registered successfully but email sending failed: logintest1757534167@example.com
+[2025-09-10 19:56:16] [ERROR] Email send failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'to_email' in 'field list'
+[2025-09-10 19:56:16] [ERROR] Failed to send verification email to user 11
+[2025-09-10 19:56:16] [INFO] User registered successfully but email sending failed: fulltest1757534175@example.com
+[2025-09-10 19:56:41] [ERROR] Email send failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'to_email' in 'field list'
+[2025-09-10 19:56:41] [ERROR] Failed to send verification email to user 12
+[2025-09-10 19:56:41] [INFO] User registered successfully but email sending failed: finaltest1757534200@example.com
+[2025-09-10 19:56:41] [INFO] New user registered: finaltest1757534200@example.com
+[2025-09-10 19:57:28] [ERROR] Email send failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'to_email' in 'field list'
+[2025-09-10 19:57:28] [ERROR] Failed to send verification email to user 13
+[2025-09-10 19:57:28] [INFO] User registered successfully but email sending failed: healthcheck1757534248@example.com
