@@ -524,13 +524,106 @@ INSERT INTO order_items (order_id, product_id, vendor_id, sku, qty, price, subto
 (1, 1, 1, 'PHONE001', 1, 599.99, 599.99, 'Sample Smartphone'),
 (2, 2, 1, 'LAPTOP001', 1, 1299.99, 1299.99, 'Sample Laptop');
 
+-- Login attempts table for security
+CREATE TABLE login_attempts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(100) NOT NULL,
+    ip_address VARCHAR(45) NOT NULL,
+    user_agent TEXT,
+    attempted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    success BOOLEAN DEFAULT FALSE,
+    INDEX idx_email (email),
+    INDEX idx_ip_address (ip_address),
+    INDEX idx_attempted_at (attempted_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- User sessions table for enhanced session management
+CREATE TABLE user_sessions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    session_token VARCHAR(255) NOT NULL UNIQUE,
+    csrf_token VARCHAR(255) NOT NULL,
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_id (user_id),
+    INDEX idx_session_token (session_token),
+    INDEX idx_expires_at (expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Email verification tokens table (separate from email_tokens for clarity)
+CREATE TABLE email_verification_tokens (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    token VARCHAR(255) NOT NULL UNIQUE,
+    expires_at TIMESTAMP NOT NULL,
+    used BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_id (user_id),
+    INDEX idx_token (token),
+    INDEX idx_expires_at (expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Password reset tokens table (separate from email_tokens for clarity)
+CREATE TABLE password_reset_tokens (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    token VARCHAR(255) NOT NULL UNIQUE,
+    expires_at TIMESTAMP NOT NULL,
+    used BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_id (user_id),
+    INDEX idx_token (token),
+    INDEX idx_expires_at (expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 2FA TOTP secrets table
+CREATE TABLE user_totp_secrets (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL UNIQUE,
+    secret VARCHAR(255) NOT NULL,
+    backup_codes JSON,
+    enabled BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_id (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Email delivery logs for tracking and debugging
+CREATE TABLE email_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    recipient VARCHAR(255) NOT NULL,
+    subject VARCHAR(500) NOT NULL,
+    status ENUM('sent', 'failed', 'error', 'bounced') DEFAULT 'sent',
+    error_message TEXT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_recipient (recipient),
+    INDEX idx_status (status),
+    INDEX idx_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Insert default settings
 INSERT INTO settings (setting_key, setting_value, description, type, is_public) VALUES
 ('site_name', 'E-Commerce Platform', 'Website name', 'string', TRUE),
-('site_email', 'info@ecommerce.com', 'Contact email', 'string', TRUE),
+('site_email', 'no-reply@fezalogistics.com', 'Contact email', 'string', TRUE),
 ('currency', 'USD', 'Default currency', 'string', TRUE),
 ('tax_rate', '8.0', 'Default tax rate percentage', 'string', FALSE),
 ('shipping_rate', '9.99', 'Standard shipping rate', 'string', TRUE),
 ('free_shipping_threshold', '50.00', 'Minimum order for free shipping', 'string', TRUE),
 ('maintenance_mode', '0', 'Enable maintenance mode', 'boolean', FALSE),
-('registration_enabled', '1', 'Allow new user registrations', 'boolean', TRUE);
+('registration_enabled', '1', 'Allow new user registrations', 'boolean', TRUE),
+('smtp_host', 'localhost', 'SMTP server host', 'string', FALSE),
+('smtp_port', '587', 'SMTP server port', 'string', FALSE),
+('smtp_username', '', 'SMTP username', 'string', FALSE),
+('smtp_password', '', 'SMTP password', 'string', FALSE),
+('smtp_encryption', 'tls', 'SMTP encryption', 'string', FALSE),
+('2fa_enabled', '0', 'Enable 2FA for all users', 'boolean', FALSE),
+('password_policy_min_length', '8', 'Minimum password length', 'string', FALSE),
+('max_login_attempts', '5', 'Maximum login attempts before lockout', 'string', FALSE),
+('login_lockout_duration', '15', 'Login lockout duration in minutes', 'string', FALSE);

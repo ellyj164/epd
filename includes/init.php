@@ -1,15 +1,21 @@
 <?php
 /**
  * Application Bootstrap
- * E-Commerce Platform
+ * E-Commerce Platform - PHP 8 Enhanced
  */
 
-// Start session
+// Start session with secure settings
 if (session_status() === PHP_SESSION_NONE) {
+    // Secure session configuration
+    ini_set('session.cookie_httponly', 1);
+    ini_set('session.use_only_cookies', 1);
+    ini_set('session.cookie_secure', isset($_SERVER['HTTPS']));
+    ini_set('session.cookie_samesite', 'Strict');
+    
     session_start();
 }
 
-// Load configuration
+// Load configuration (includes environment variables)
 require_once __DIR__ . '/../config/config.php';
 
 // Load core functions
@@ -21,15 +27,25 @@ require_once __DIR__ . '/helpers.php';
 // Load database connection
 require_once __DIR__ . '/database.php';
 
-// Load email system
-require_once __DIR__ . '/email.php';
+// Load enhanced email system
+require_once __DIR__ . '/email_system.php';
+
+// Load legacy email system for compatibility
+if (file_exists(__DIR__ . '/email.php')) {
+    require_once __DIR__ . '/email.php';
+}
+
+// Load RBAC middleware
+require_once __DIR__ . '/../middleware/RoleMiddleware.php';
 
 // Load models
 require_once __DIR__ . '/models.php';
 require_once __DIR__ . '/models_extended.php';
 
-// Load UI components
-require_once __DIR__ . '/../assets/components/autoload.php';
+// Load UI components if available
+if (file_exists(__DIR__ . '/../assets/components/autoload.php')) {
+    require_once __DIR__ . '/../assets/components/autoload.php';
+}
 
 // Initialize session
 Session::start();
@@ -130,18 +146,51 @@ function handleException($exception) {
 set_exception_handler('handleException');
 
 /**
- * Initialize directories
+ * Initialize required directories
  */
 $directories = [
-    __DIR__ . '/uploads',
-    __DIR__ . '/uploads/products',
-    __DIR__ . '/uploads/vendors',
-    __DIR__ . '/logs'
+    UPLOAD_PATH,
+    UPLOAD_PATH . 'products/',
+    UPLOAD_PATH . 'vendors/',
+    UPLOAD_PATH . 'avatars/',
+    ERROR_LOG_PATH
 ];
 
 foreach ($directories as $dir) {
     if (!is_dir($dir)) {
         mkdir($dir, 0755, true);
     }
+}
+
+/**
+ * Health Check Function
+ */
+function performHealthCheck() {
+    $checks = [];
+    
+    // Database connectivity
+    try {
+        Database::getInstance()->getConnection();
+        $checks['database'] = ['status' => 'ok', 'message' => 'Database connection successful'];
+    } catch (Exception $e) {
+        $checks['database'] = ['status' => 'error', 'message' => 'Database connection failed: ' . $e->getMessage()];
+    }
+    
+    // Required directories
+    $requiredDirs = [UPLOAD_PATH, ERROR_LOG_PATH];
+    $dirCheck = true;
+    foreach ($requiredDirs as $dir) {
+        if (!is_dir($dir) || !is_writable($dir)) {
+            $dirCheck = false;
+            break;
+        }
+    }
+    $checks['directories'] = ['status' => $dirCheck ? 'ok' : 'error', 'message' => $dirCheck ? 'All directories writable' : 'Directory permissions issue'];
+    
+    // Configuration
+    $configCheck = !empty(SECRET_KEY) && SECRET_KEY !== 'your-secret-key-change-this-in-production-minimum-32-chars';
+    $checks['config'] = ['status' => $configCheck ? 'ok' : 'warning', 'message' => $configCheck ? 'Configuration secure' : 'Default secret key detected'];
+    
+    return $checks;
 }
 ?>
