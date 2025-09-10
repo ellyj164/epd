@@ -30,7 +30,7 @@ class User extends BaseModel {
         
         $user = $this->findByEmail($email);
         
-        if ($user && verifyPassword($password, $user['password_hash'])) {
+        if ($user && verifyPassword($password, $user['pass_hash'])) {
             // Check if user account is active
             if ($user['status'] !== 'active') {
                 logLoginAttempt($email, false);
@@ -53,7 +53,7 @@ class User extends BaseModel {
     }
     
     public function register($data) {
-        $data['password_hash'] = hashPassword($data['password']);
+        $data['pass_hash'] = hashPassword($data['password']);
         unset($data['password']);
         unset($data['confirm_password']); // Remove confirm_password field
         $data['created_at'] = date('Y-m-d H:i:s');
@@ -62,16 +62,19 @@ class User extends BaseModel {
     }
     
     public function updatePassword($userId, $newPassword) {
-        $data = ['password_hash' => hashPassword($newPassword)];
+        $data = ['pass_hash' => hashPassword($newPassword)];
         return $this->update($userId, $data);
     }
     
     public function verifyEmail($userId) {
-        return $this->update($userId, ['email_verified' => 1]);
+        return $this->update($userId, [
+            'verified_at' => date('Y-m-d H:i:s'),
+            'status' => 'active'
+        ]);
     }
     
     public function getAddresses($userId) {
-        $stmt = $this->db->prepare("SELECT * FROM user_addresses WHERE user_id = ? ORDER BY is_default DESC, created_at DESC");
+        $stmt = $this->db->prepare("SELECT * FROM addresses WHERE user_id = ? ORDER BY is_default DESC, created_at DESC");
         $stmt->execute([$userId]);
         return $stmt->fetchAll();
     }
@@ -79,7 +82,7 @@ class User extends BaseModel {
     public function addAddress($userId, $addressData) {
         $addressData['user_id'] = $userId;
         
-        $stmt = $this->db->prepare("INSERT INTO user_addresses (user_id, type, address_line1, address_line2, city, state, postal_code, country, is_default) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt = $this->db->prepare("INSERT INTO addresses (user_id, type, address_line1, address_line2, city, state, postal_code, country, is_default) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
         
         return $stmt->execute([
             $userId,

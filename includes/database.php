@@ -10,33 +10,19 @@ class Database {
     
     private function __construct() {
         try {
-            if (USE_SQLITE) {
-                // Use SQLite for development
-                $dsn = "sqlite:" . SQLITE_PATH;
-                $options = [
-                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                    PDO::ATTR_EMULATE_PREPARES => false,
-                ];
-                
-                $this->connection = new PDO($dsn, null, null, $options);
-                
-                // Enable foreign keys in SQLite
-                $this->connection->exec('PRAGMA foreign_keys = ON;');
-            } else {
-                // Use MySQL/MariaDB for production
-                $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
-                $options = [
-                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                    PDO::ATTR_EMULATE_PREPARES => false,
-                ];
-                
-                $this->connection = new PDO($dsn, DB_USER, DB_PASS, $options);
-            }
+            // Use MariaDB only - removed SQLite support
+            $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
+            $options = [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES => false,
+                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"
+            ];
+            
+            $this->connection = new PDO($dsn, DB_USER, DB_PASS, $options);
         } catch (PDOException $e) {
             if (DEBUG_MODE) {
-                throw new Exception("Database connection failed: " . $e->getMessage());
+                throw new Exception("MariaDB connection failed: " . $e->getMessage());
             } else {
                 throw new Exception("Database connection failed");
             }
