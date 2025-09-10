@@ -99,11 +99,18 @@ function validateEmail($email) {
 }
 
 function hashPassword($password) {
-    // Use ARGON2ID for maximum security
-    return password_hash($password, PASSWORD_ARGON2ID, [
-        'memory_cost' => 65536, // 64 MB
-        'time_cost' => 4,       // 4 iterations
-        'threads' => 3,         // 3 parallel threads
+    // Use ARGON2ID for maximum security - upgraded from bcrypt
+    if (defined('PASSWORD_ARGON2ID') && PASSWORD_ARGON2ID) {
+        return password_hash($password, PASSWORD_ARGON2ID, [
+            'memory_cost' => 65536, // 64 MB
+            'time_cost' => 4,       // 4 iterations  
+            'threads' => 3,         // 3 parallel threads
+        ]);
+    }
+    
+    // Fallback to bcrypt if Argon2ID is not available (PHP < 7.2)
+    return password_hash($password, PASSWORD_DEFAULT, [
+        'cost' => BCRYPT_COST
     ]);
 }
 
@@ -567,5 +574,227 @@ class Logger {
     public static function warning($message) {
         self::log($message, 'WARNING');
     }
+}
+
+/**
+ * Two-Factor Authentication (2FA) TOTP Functions
+ */
+
+// Generate TOTP secret
+function generateTotpSecret($length = 32) {
+    $alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    $secret = '';
+    for ($i = 0; $i < $length; $i++) {
+        $secret .= $alphabet[random_int(0, strlen($alphabet) - 1)];
+    }
+    return $secret;
+}
+
+// Generate TOTP code for verification
+function generateTotpCode($secret, $timestamp = null) {
+    if ($timestamp === null) {
+        $timestamp = time();
+    }
+    
+    // Convert secret from base32
+    $key = base32Decode($secret);
+    
+    // Calculate time counter (30-second window)
+    $timeCounter = floor($timestamp / 30);
+    
+    // Pack time counter as binary string
+    $timeBytes = pack('N*', 0) . pack('N*', $timeCounter);
+    
+    // HMAC-SHA1
+    $hash = hash_hmac('sha1', $timeBytes, $key, true);
+    
+    // Dynamic truncation
+    $offset = ord($hash[19]) & 0xf;
+    $code = (
+        ((ord($hash[$offset]) & 0x7f) << 24) |
+        ((ord($hash[$offset+1]) & 0xff) << 16) |
+        ((ord($hash[$offset+2]) & 0xff) << 8) |
+        (ord($hash[$offset+3]) & 0xff)
+    ) % pow(10, 6);
+    
+    return str_pad($code, 6, '0', STR_PAD_LEFT);
+}
+
+// Verify TOTP code with time window tolerance
+function verifyTotpCode($secret, $userCode, $tolerance = 1) {
+    $currentTime = time();
+    
+    // Check current window and adjacent windows (±30 seconds)
+    for ($i = -$tolerance; $i <= $tolerance; $i++) {
+        $testTime = $currentTime + ($i * 30);
+        $validCode = generateTotpCode($secret, $testTime);
+        
+        if (hash_equals($validCode, $userCode)) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+// Base32 decoding function for TOTP
+function base32Decode($data) {
+    $alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    $data = strtoupper($data);
+    $output = '';
+    $v = 0;
+    $vbits = 0;
+    
+    for ($i = 0, $j = strlen($data); $i < $j; $i++) {
+        $v <<= 5;
+        if (($x = strpos($alphabet, $data[$i])) !== false) {
+            $v += $x;
+            $vbits += 5;
+            if ($vbits >= 8) {
+                $output .= chr(($v >> ($vbits - 8)) & 255);
+                $vbits -= 8;
+            }
+        }
+    }
+    
+    return $output;
+}
+
+// Enable 2FA for user
+function enable2FA($userId, $secret) {
+    $db = Database::getInstance()->getConnection();
+    
+    // Generate backup codes
+    $backupCodes = [];
+    for ($i = 0; $i < 10; $i++) {
+        $backupCodes[] = strtoupper(bin2hex(random_bytes(4))); // 8-character codes
+    }
+    
+    $stmt = $db->prepare("
+        INSERT INTO user_totp_secrets (user_id, secret, backup_codes, enabled) 
+        VALUES (?, ?, ?, TRUE)
+        ON DUPLICATE KEY UPDATE 
+        secret = VALUES(secret), 
+        backup_codes = VALUES(backup_codes), 
+        enabled = TRUE,
+        updated_at = CURRENT_TIMESTAMP
+    ");
+    
+    try {
+        $stmt->execute([$userId, $secret, json_encode($backupCodes)]);
+        return $backupCodes;
+    } catch (PDOException $e) {
+        error_log("2FA enable error: " . $e->getMessage());
+        return false;
+    }
+}
+
+// Verify user has 2FA enabled
+function is2FAEnabled($userId) {
+    $db = Database::getInstance()->getConnection();
+    
+    $stmt = $db->prepare("
+        SELECT enabled FROM user_totp_secrets 
+        WHERE user_id = ? AND enabled = TRUE
+    ");
+    $stmt->execute([$userId]);
+    
+    return $stmt->fetchColumn() ? true : false;
+}
+
+// Get user's TOTP secret
+function getUserTotpSecret($userId) {
+    $db = Database::getInstance()->getConnection();
+    
+    $stmt = $db->prepare("
+        SELECT secret FROM user_totp_secrets 
+        WHERE user_id = ? AND enabled = TRUE
+    ");
+    $stmt->execute([$userId]);
+    
+    return $stmt->fetchColumn();
+}
+
+// Disable 2FA for user
+function disable2FA($userId) {
+    $db = Database::getInstance()->getConnection();
+    
+    $stmt = $db->prepare("
+        UPDATE user_totp_secrets 
+        SET enabled = FALSE, updated_at = CURRENT_TIMESTAMP 
+        WHERE user_id = ?
+    ");
+    
+    try {
+        $stmt->execute([$userId]);
+        return true;
+    } catch (PDOException $e) {
+        error_log("2FA disable error: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Enhanced Rate Limiting Functions
+ */
+function checkRateLimit($identifier, $maxRequests = null, $windowSeconds = null) {
+    if (!RATE_LIMIT_ENABLED) {
+        return true;
+    }
+    
+    $maxRequests = $maxRequests ?? RATE_LIMIT_REQUESTS;
+    $windowSeconds = $windowSeconds ?? RATE_LIMIT_WINDOW;
+    
+    $cacheKey = 'rate_limit_' . hash('sha256', $identifier);
+    $currentTime = time();
+    $windowStart = $currentTime - $windowSeconds;
+    
+    // For now, use a simple file-based implementation
+    // In production, use Redis or Memcached
+    $cacheFile = ERROR_LOG_PATH . "rate_limit_$cacheKey.json";
+    
+    $requests = [];
+    if (file_exists($cacheFile)) {
+        $data = json_decode(file_get_contents($cacheFile), true);
+        if ($data && is_array($data)) {
+            // Filter out expired requests
+            $requests = array_filter($data, function($timestamp) use ($windowStart) {
+                return $timestamp > $windowStart;
+            });
+        }
+    }
+    
+    // Check if limit exceeded
+    if (count($requests) >= $maxRequests) {
+        return false;
+    }
+    
+    // Add current request
+    $requests[] = $currentTime;
+    
+    // Save updated requests
+    file_put_contents($cacheFile, json_encode($requests));
+    
+    return true;
+}
+
+/**
+ * CSRF Protection Enhancement
+ */
+function validateCsrfAndRateLimit($identifier = null) {
+    // CSRF validation
+    if (!isset($_POST['csrf_token']) || !verifyCsrfToken($_POST['csrf_token'])) {
+        http_response_code(403);
+        die(json_encode(['error' => 'Invalid CSRF token']));
+    }
+    
+    // Rate limiting
+    $identifier = $identifier ?? (getClientIP() . ':' . ($_SERVER['REQUEST_URI'] ?? ''));
+    if (!checkRateLimit($identifier)) {
+        http_response_code(429);
+        die(json_encode(['error' => 'Too many requests. Please try again later.']));
+    }
+    
+    return true;
 }
 ?>
