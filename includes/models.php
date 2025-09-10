@@ -30,12 +30,18 @@ class User extends BaseModel {
         
         $user = $this->findByEmail($email);
         
-        if ($user && verifyPassword($password, $user['password_hash'])) {
+        if ($user && verifyPassword($password, $user['pass_hash'])) {
             // Check if user account is active
             if ($user['status'] !== 'active') {
                 logLoginAttempt($email, false);
                 logSecurityEvent($user['id'], 'login_failed_inactive', 'user', $user['id']);
-                return ['error' => 'Account is not active. Please contact support.'];
+                
+                // Check if user is pending email verification
+                if ($user['status'] === 'pending' && empty($user['verified_at'])) {
+                    return ['error' => 'Please verify your email address before logging in. <a href="/resend-verification.php">Resend verification email</a>.'];
+                } else {
+                    return ['error' => 'Account is not active. Please contact support.'];
+                }
             }
             
             // Successful login
@@ -53,25 +59,86 @@ class User extends BaseModel {
     }
     
     public function register($data) {
-        $data['password_hash'] = hashPassword($data['password']);
-        unset($data['password']);
-        unset($data['confirm_password']); // Remove confirm_password field
-        $data['created_at'] = date('Y-m-d H:i:s');
-        
-        return $this->create($data);
+        try {
+            // Start transaction
+            $this->db->beginTransaction();
+            
+            // Prepare user data with pending status
+            $userData = [
+                'username' => $data['username'],
+                'email' => $data['email'],
+                'pass_hash' => hashPassword($data['password']),
+                'first_name' => $data['first_name'],
+                'last_name' => $data['last_name'],
+                'phone' => $data['phone'] ?? null,
+                'role' => 'customer',
+                'status' => 'pending', // User starts as pending
+                'verified_at' => null,  // Not verified yet
+                'created_at' => date('Y-m-d H:i:s')
+            ];
+            
+            // Insert user
+            $userId = $this->create($userData);
+            
+            if (!$userId) {
+                $this->db->rollBack();
+                return false;
+            }
+            
+            // Commit user creation
+            $this->db->commit();
+            
+            // Create email verification token
+            $token = EmailTokenManager::generateToken($userId, 'email_verification', 1440); // 24 hours
+            
+            if (!$token) {
+                // Token creation failed, but user is already created
+                Logger::error("Failed to create email verification token for user {$userId}");
+                return false;
+            }
+            
+            // Send verification email
+            $emailService = EmailService::getInstance();
+            $emailSent = $emailService->send(
+                $userData['email'],
+                'Email Verification Required',
+                'email_verification',
+                [
+                    'user' => $userData,
+                    'token' => $token,
+                    'verification_url' => url("verify-email.php?token={$token}")
+                ]
+            );
+            
+            if (!$emailSent) {
+                Logger::error("Failed to send verification email to user {$userId}");
+                return false;
+            }
+            
+            Logger::info("User registered successfully with email verification: {$userData['email']}");
+            return $userId;
+            
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            Logger::error("Registration error: " . $e->getMessage());
+            throw $e;
+        }
     }
     
     public function updatePassword($userId, $newPassword) {
-        $data = ['password_hash' => hashPassword($newPassword)];
+        $data = ['pass_hash' => hashPassword($newPassword)];
         return $this->update($userId, $data);
     }
     
     public function verifyEmail($userId) {
-        return $this->update($userId, ['email_verified' => 1]);
+        return $this->update($userId, [
+            'verified_at' => date('Y-m-d H:i:s'),
+            'status' => 'active'
+        ]);
     }
     
     public function getAddresses($userId) {
-        $stmt = $this->db->prepare("SELECT * FROM user_addresses WHERE user_id = ? ORDER BY is_default DESC, created_at DESC");
+        $stmt = $this->db->prepare("SELECT * FROM addresses WHERE user_id = ? ORDER BY is_default DESC, created_at DESC");
         $stmt->execute([$userId]);
         return $stmt->fetchAll();
     }
@@ -79,7 +146,7 @@ class User extends BaseModel {
     public function addAddress($userId, $addressData) {
         $addressData['user_id'] = $userId;
         
-        $stmt = $this->db->prepare("INSERT INTO user_addresses (user_id, type, address_line1, address_line2, city, state, postal_code, country, is_default) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt = $this->db->prepare("INSERT INTO addresses (user_id, type, address_line1, address_line2, city, state, postal_code, country, is_default) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
         
         return $stmt->execute([
             $userId,

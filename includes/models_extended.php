@@ -20,7 +20,7 @@ class Order extends BaseModel {
             // Insert order
             $stmt = $this->db->prepare("
                 INSERT INTO {$this->table} 
-                (user_id, order_number, subtotal, tax_amount, shipping_amount, discount_amount, total_amount, 
+                (user_id, order_number, subtotal, tax_amount, shipping_amount, discount_amount, total, 
                  shipping_address, billing_address, payment_method) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
@@ -32,7 +32,7 @@ class Order extends BaseModel {
                 $orderData['tax_amount'],
                 $orderData['shipping_amount'],
                 $orderData['discount_amount'] ?? 0,
-                $orderData['total_amount'],
+                $orderData['total'],
                 $orderData['shipping_address'],
                 $orderData['billing_address'],
                 $orderData['payment_method']
@@ -67,7 +67,7 @@ class Order extends BaseModel {
     private function addOrderItem($orderId, $item) {
         $stmt = $this->db->prepare("
             INSERT INTO order_items 
-            (order_id, product_id, vendor_id, quantity, unit_price, total_price, product_name, product_sku) 
+            (order_id, product_id, vendor_id, sku, qty, price, subtotal, product_name) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ");
         
@@ -78,11 +78,11 @@ class Order extends BaseModel {
             $orderId,
             $item['product_id'],
             $productData['vendor_id'],
+            $item['sku'] ?? $productData['sku'],
             $item['quantity'],
             $item['price'],
             $item['quantity'] * $item['price'],
-            $item['name'],
-            $item['sku']
+            $item['name'] ?? $productData['name']
         ]);
     }
     
@@ -155,8 +155,8 @@ class Order extends BaseModel {
         $stmt = $this->db->prepare("
             SELECT 
                 COUNT(DISTINCT o.id) as total_orders,
-                SUM(oi.total_price) as total_revenue,
-                AVG(oi.total_price) as average_order_value,
+                SUM(oi.subtotal) as total_revenue,
+                AVG(oi.subtotal) as average_order_value,
                 COUNT(CASE WHEN o.status = 'pending' THEN 1 END) as pending_orders,
                 COUNT(CASE WHEN o.status = 'processing' THEN 1 END) as processing_orders,
                 COUNT(CASE WHEN o.status = 'shipped' THEN 1 END) as shipped_orders,

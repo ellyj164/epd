@@ -782,7 +782,6 @@ includeHeader($page_title);
         gap: 1rem;
     }
 }
-</style>
 
 .action-link {
     display: flex;
@@ -813,7 +812,9 @@ includeHeader($page_title);
     color: #6b7280;
     font-size: 14px;
 }
+</style>
 
+<style>
 .card-header {
     display: flex;
     justify-content: space-between;

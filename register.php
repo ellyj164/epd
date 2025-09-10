@@ -79,10 +79,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             if ($userId) {
                 Logger::info("New user registered: {$formData['email']}");
-                $success = 'Account created successfully! You can now login.';
+                $success = 'Account created successfully! Please check your email and click the verification link to activate your account.';
                 $formData = []; // Clear form
             } else {
-                $error = 'Failed to create account. Please try again.';
+                $error = 'Failed to create account or send verification email. Please try again.';
             }
         } catch (Exception $e) {
             Logger::error("Registration error: " . $e->getMessage());
