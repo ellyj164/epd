@@ -109,12 +109,12 @@ class Order extends BaseModel {
     }
     
     public function updateStatus($orderId, $status) {
-        $stmt = $this->db->prepare("UPDATE {$this->table} SET status = ?, updated_at = datetime('now') WHERE id = ?");
+        $stmt = $this->db->prepare("UPDATE {$this->table} SET status = ?, updated_at = NOW() WHERE id = ?");
         return $stmt->execute([$status, $orderId]);
     }
     
     public function updatePaymentStatus($orderId, $status, $transactionId = null) {
-        $sql = "UPDATE {$this->table} SET payment_status = ?, updated_at = datetime('now')";
+        $sql = "UPDATE {$this->table} SET payment_status = ?, updated_at = NOW()";
         $params = [$status];
         
         if ($transactionId) {
@@ -456,16 +456,20 @@ class Recommendation extends BaseModel {
     }
     
     public function getTrendingProducts($limit = 8) {
-        // SQLite compatible version
+        // MariaDB compatible version - rewritten for performance
         $stmt = $this->db->prepare("
-            SELECT p.*, COUNT(ua.id) as activity_count, MAX(pi.image_url) as image_url
+            SELECT p.id, p.name, p.price, p.status, p.created_at,
+                   COALESCE(SUM(oi.qty), 0) AS sold,
+                   MAX(pi.image_url) AS image_url
             FROM products p 
-            LEFT JOIN user_activities ua ON p.id = ua.product_id 
-                AND ua.created_at >= datetime('now', '-7 days')
+            LEFT JOIN order_items oi ON oi.product_id = p.id
+            LEFT JOIN orders o ON o.id = oi.order_id 
+                AND o.placed_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) 
+                AND o.status IN ('paid','shipped','delivered')
             LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = 1
             WHERE p.status = 'active'
-            GROUP BY p.id 
-            ORDER BY activity_count DESC, p.created_at DESC 
+            GROUP BY p.id, p.name, p.price, p.status, p.created_at
+            ORDER BY sold DESC, p.created_at DESC 
             LIMIT ?
         ");
         $stmt->execute([$limit]);
@@ -544,7 +548,7 @@ class Settings extends BaseModel {
             VALUES (?, ?, ?) 
             ON DUPLICATE KEY UPDATE 
                 setting_value = VALUES(setting_value), 
-                updated_at = datetime('now')
+                updated_at = NOW()
         ");
         return $stmt->execute([$key, $value, $description]);
     }

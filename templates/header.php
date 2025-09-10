@@ -14,6 +14,7 @@
     
     <!-- Favicon and meta -->
     <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
+    <meta name="theme-color" content="#ffffff">
     <meta name="description" content="<?php echo htmlspecialchars($meta_description ?? 'FezaMarket - Buy & Sell Everything Online'); ?>">
     
     <style>
