@@ -1,0 +1,2 @@
+[2025-09-10 01:02:38] [ERROR] Uncaught exception: Call to undefined function csrfTokenInput() in /home/runner/work/epd/epd/seller-register.php on line 150
+[2025-09-10 01:07:30] [ERROR] Email send failed: SQLSTATE[HY000]: General error: 1 no such table: mail_queue

@@ -54,7 +54,7 @@ includeHeader($page_title);
                 </div>
                 
                 <?php if (Session::isLoggedIn()): ?>
-                    <a href="/vendor/register.php" class="btn btn-large cta-button">Start Selling Now</a>
+                    <a href="<?php echo sellerUrl('register'); ?>" class="btn btn-large cta-button">Start Selling Now</a>
                 <?php else: ?>
                     <a href="/register.php?seller=1" class="btn btn-large cta-button">Create Seller Account</a>
                 <?php endif; ?>
@@ -160,9 +160,9 @@ includeHeader($page_title);
                         </ul>
                         <p class="seller-fee">3.5% selling fee per transaction</p>
                         <?php if (Session::isLoggedIn()): ?>
-                            <a href="/vendor/register.php?type=individual" class="btn btn-outline">Start as Individual</a>
+                            <a href="<?php echo sellerUrl('register?business_type=individual'); ?>" class="btn btn-outline">Start as Individual</a>
                         <?php else: ?>
-                            <a href="/register.php?seller=individual" class="btn btn-outline">Start as Individual</a>
+                            <a href="<?php echo sellerUrl('register?business_type=individual'); ?>" class="btn btn-outline">Start as Individual</a>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -185,9 +185,9 @@ includeHeader($page_title);
                         </ul>
                         <p class="seller-fee">2.5% selling fee per transaction</p>
                         <?php if (Session::isLoggedIn()): ?>
-                            <a href="/vendor/register.php?type=business" class="btn">Start as Business</a>
+                            <a href="<?php echo sellerUrl('register?business_type=business'); ?>" class="btn">Start as Business</a>
                         <?php else: ?>
-                            <a href="/register.php?seller=business" class="btn">Start as Business</a>
+                            <a href="<?php echo sellerUrl('register?business_type=business'); ?>" class="btn">Start as Business</a>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -269,10 +269,10 @@ includeHeader($page_title);
                 <p>Join thousands of successful sellers on FezaMarket</p>
                 <div class="cta-buttons">
                     <?php if (Session::isLoggedIn()): ?>
-                        <a href="/vendor/register.php" class="btn btn-large">Start Selling Today</a>
+                        <a href="<?php echo sellerUrl('register'); ?>" class="btn btn-large">Start Selling Today</a>
                     <?php else: ?>
-                        <a href="/register.php?seller=1" class="btn btn-large">Create Seller Account</a>
-                        <a href="/login.php" class="btn btn-outline">Already have an account?</a>
+                        <a href="<?php echo sellerUrl('register'); ?>" class="btn btn-large">Create Seller Account</a>
+                        <a href="/login.php?redirect=<?php echo urlencode(sellerUrl('register')); ?>" class="btn btn-outline">Already have an account?</a>
                     <?php endif; ?>
                 </div>
             </div>

@@ -16,9 +16,86 @@
     <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
     <meta name="description" content="<?php echo htmlspecialchars($meta_description ?? 'FezaMarket - Buy & Sell Everything Online'); ?>">
     
+    <style>
+        /* User dropdown styles */
+        .account-dropdown {
+            position: relative;
+        }
+        
+        .user-menu-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .user-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+        }
+        
+        .user-dropdown-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            min-width: 200px;
+            z-index: 1000;
+            margin-top: 0.5rem;
+        }
+        
+        .dropdown-item {
+            display: block;
+            padding: 0.75rem 1rem;
+            color: #374151;
+            text-decoration: none;
+            border-bottom: 1px solid #f3f4f6;
+            transition: background-color 0.2s;
+        }
+        
+        .dropdown-item:hover {
+            background-color: #f9fafb;
+        }
+        
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+        
+        .dropdown-divider {
+            height: 1px;
+            background-color: #e5e7eb;
+            margin: 0.25rem 0;
+        }
+    </style>
+    
     <!-- Modern JavaScript -->
     <script src="/assets/js/ui.js" defer></script>
     <script src="/js/fezamarket.js" defer></script>
+    <script>
+        // User dropdown functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const userMenuToggle = document.querySelector('.user-menu-toggle');
+            const userDropdown = document.querySelector('.user-dropdown-menu');
+            
+            if (userMenuToggle && userDropdown) {
+                userMenuToggle.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const isVisible = userDropdown.style.display === 'block';
+                    userDropdown.style.display = isVisible ? 'none' : 'block';
+                });
+                
+                // Close dropdown when clicking outside
+                document.addEventListener('click', function(e) {
+                    if (!userMenuToggle.contains(e.target) && !userDropdown.contains(e.target)) {
+                        userDropdown.style.display = 'none';
+                    }
+                });
+            }
+        });
+    </script>
 </head>
 <body>
     <header class="fezamarket-header">
@@ -29,7 +106,7 @@
                     <div class="top-nav-left">
                         <span class="greeting">Hi! 
                             <?php if (Session::isLoggedIn()): ?>
-                                <a href="/login.php" class="auth-link">Sign in</a> or <a href="/register.php" class="auth-link">register</a>
+                                <?php echo htmlspecialchars($current_user['first_name'] ?? 'User'); ?>!
                             <?php else: ?>
                                 <a href="/login.php" class="auth-link">Sign in</a> or <a href="/register.php" class="auth-link">register</a>
                             <?php endif; ?>
@@ -47,11 +124,30 @@
                                 <a href="/wishlist.php" class="top-nav-link">Watchlist <span class="dropdown-arrow">▼</span></a>
                             </div>
                             <div class="account-dropdown">
-                                <a href="/account.php" class="top-nav-link">My FezaMarket <span class="dropdown-arrow">▼</span></a>
+                                <a href="#" class="top-nav-link user-menu-toggle">
+                                    <img src="<?php echo getUserAvatar($current_user, 24); ?>" alt="Avatar" class="user-avatar">
+                                    <?php echo htmlspecialchars($current_user['first_name']); ?> <span class="dropdown-arrow">▼</span>
+                                </a>
+                                <div class="user-dropdown-menu" style="display: none;">
+                                    <a href="/account.php" class="dropdown-item">Dashboard</a>
+                                    <?php if (hasRole('vendor')): ?>
+                                        <a href="/seller-center.php" class="dropdown-item">Seller Center</a>
+                                    <?php else: ?>
+                                        <a href="<?php echo sellerUrl('register'); ?>" class="dropdown-item">Start Selling</a>
+                                    <?php endif; ?>
+                                    <?php if (hasRole('admin')): ?>
+                                        <a href="/admin/" class="dropdown-item">Admin Panel</a>
+                                    <?php endif; ?>
+                                    <div class="dropdown-divider"></div>
+                                    <a href="/account.php?tab=orders" class="dropdown-item">Orders</a>
+                                    <a href="/account.php?tab=security" class="dropdown-item">Security</a>
+                                    <div class="dropdown-divider"></div>
+                                    <a href="/logout.php" class="dropdown-item">Sign Out</a>
+                                </div>
                             </div>
                         <?php else: ?>
                             <a href="/wishlist.php" class="top-nav-link">Watchlist</a>
-                            <a href="/account.php" class="top-nav-link">My FezaMarket</a>
+                            <a href="/account.php" class="top-nav-link" onclick="setIntendedUrl(); return false;">My FezaMarket</a>
                         <?php endif; ?>
                         <a href="/notifications.php" class="notification-icon">🔔</a>
                         <a href="/cart.php" class="cart-icon-top">🛒

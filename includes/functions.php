@@ -122,6 +122,11 @@ function csrfToken() {
     return Session::get('csrf_token');
 }
 
+function csrfTokenInput() {
+    $token = csrfToken();
+    return '<input type="hidden" name="csrf_token" value="' . htmlspecialchars($token) . '">';
+}
+
 function verifyCsrfToken($token) {
     return hash_equals(Session::get('csrf_token', ''), $token);
 }
