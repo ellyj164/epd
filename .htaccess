@@ -1,6 +1,10 @@
 # .htaccess for Clean URLs and Routing
 RewriteEngine On
 
+# Admin panel routing
+RewriteRule ^admin/?$ admin/index.php [L]
+RewriteRule ^admin/([^/]+)/?$ admin/$1.php [L]
+
 # Redirect /vendor/register to /seller/register (fix broken route)
 RewriteRule ^vendor/register\.php$ /seller/register [R=301,L]
 RewriteRule ^vendor/register$ /seller/register [R=301,L]
