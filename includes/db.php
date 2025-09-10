@@ -7,13 +7,13 @@ if (!function_exists('db')) {
         static $pdo = null;
         if ($pdo instanceof PDO) return $pdo;
 
-        // Prefer .env if available
-        $host     = getenv('DB_HOST') ?: 'localhost';
-        $port     = getenv('DB_PORT') ?: '3306';
-        $dbname   = getenv('DB_NAME') ?: 'duns';
-        $user     = getenv('DB_USER') ?: 'duns';
-        $pass     = getenv('DB_PASS') ?: 'QRJ5M0VuI1nkMQW';
-        $charset  = 'utf8mb4';
+        // Use configuration constants with environment fallback
+        $host     = defined('DB_HOST') ? DB_HOST : (getenv('DB_HOST') ?: 'localhost');
+        $port     = defined('DB_PORT') ? '3306' : (getenv('DB_PORT') ?: '3306');
+        $dbname   = defined('DB_NAME') ? DB_NAME : (getenv('DB_NAME') ?: 'ecommerce_platform');
+        $user     = defined('DB_USER') ? DB_USER : (getenv('DB_USER') ?: 'duns1');
+        $pass     = defined('DB_PASS') ? DB_PASS : (getenv('DB_PASS') ?: 'Tumukunde');
+        $charset  = defined('DB_CHARSET') ? DB_CHARSET : (getenv('DB_CHARSET') ?: 'utf8mb4');
 
         $dsn = "mysql:host={$host};port={$port};dbname={$dbname};charset={$charset}";
         $options = [

@@ -174,7 +174,8 @@ function logLoginAttempt($email, $success = false) {
 function clearLoginAttempts($email) {
     $db = Database::getInstance()->getConnection();
     
-    $stmt = $db->prepare("DELETE FROM login_attempts WHERE email = ?");
+    // Only clear failed login attempts, keep successful ones for audit trail
+    $stmt = $db->prepare("DELETE FROM login_attempts WHERE email = ? AND success = 0");
     $stmt->execute([$email]);
 }
 
@@ -342,7 +343,7 @@ function logSecurityEvent($userId, $action, $resourceType = null, $resourceId = 
     $db = Database::getInstance()->getConnection();
     
     $stmt = $db->prepare("
-        INSERT INTO audit_logs (user_id, action, resource_type, resource_id, ip_address, user_agent, metadata, created_at)
+        INSERT INTO audit_log (user_id, action, resource_type, resource_id, ip_address, user_agent, new_values, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
     ");
     
