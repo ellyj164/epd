@@ -342,7 +342,7 @@ function logSecurityEvent($userId, $action, $resourceType = null, $resourceId = 
     $db = Database::getInstance()->getConnection();
     
     $stmt = $db->prepare("
-        INSERT INTO audit_logs (user_id, action, resource_type, resource_id, ip_address, user_agent, metadata, created_at)
+        INSERT INTO audit_log (user_id, action, resource_type, resource_id, ip_address, user_agent, new_values, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
     ");
     

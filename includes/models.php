@@ -94,7 +94,9 @@ class User extends BaseModel {
             if (!$token) {
                 // Token creation failed, but user is already created
                 Logger::error("Failed to create email verification token for user {$userId}");
-                return false;
+                // Don't return false here - user is created, just token failed
+                Logger::info("User registered successfully but email verification token failed: {$userData['email']}");
+                return $userId;
             }
             
             // Send verification email
@@ -112,7 +114,9 @@ class User extends BaseModel {
             
             if (!$emailSent) {
                 Logger::error("Failed to send verification email to user {$userId}");
-                return false;
+                // Don't return false here - user is created, token exists, just email failed
+                Logger::info("User registered successfully but email sending failed: {$userData['email']}");
+                return $userId;
             }
             
             Logger::info("User registered successfully with email verification: {$userData['email']}");
