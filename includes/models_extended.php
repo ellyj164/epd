@@ -456,23 +456,27 @@ class Recommendation extends BaseModel {
     }
     
     public function getTrendingProducts($limit = 8) {
-        // MariaDB compatible version - rewritten for performance
-        $stmt = $this->db->prepare("
-            SELECT p.id, p.name, p.price, p.status, p.created_at,
+        // Fixed MariaDB compatible trending products query
+        // Updated to use existing columns and proper MariaDB syntax
+        $sql = "
+            SELECT p.id, p.name AS title, p.price,
                    COALESCE(SUM(oi.qty), 0) AS sold,
-                   MAX(pi.image_url) AS image_url
+                   MAX(pi.image_url) AS image
             FROM products p 
             LEFT JOIN order_items oi ON oi.product_id = p.id
             LEFT JOIN orders o ON o.id = oi.order_id 
-                AND o.placed_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) 
-                AND o.status IN ('paid','shipped','delivered')
-            LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = 1
+              AND o.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+              AND o.status IN ('paid','shipped','delivered')
+            LEFT JOIN product_images pi ON pi.product_id = p.id AND pi.is_primary = 1
             WHERE p.status = 'active'
-            GROUP BY p.id, p.name, p.price, p.status, p.created_at
+            GROUP BY p.id, p.name, p.price
             ORDER BY sold DESC, p.created_at DESC 
             LIMIT ?
-        ");
-        $stmt->execute([$limit]);
+        ";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(1, $limit, PDO::PARAM_INT);
+        $stmt->execute();
         return $stmt->fetchAll();
     }
     
