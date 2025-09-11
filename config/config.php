@@ -43,8 +43,8 @@ function env($key, $default = null) {
 // Database connection settings - MySQL/MariaDB with environment support
 define('DB_HOST', env('DB_HOST', 'localhost'));
 define('DB_NAME', env('DB_NAME', 'ecommerce_platform'));
-define('DB_USER', env('DB_USER', 'root'));
-define('DB_PASS', env('DB_PASS', ''));
+define('DB_USER', env('DB_USER', 'duns1'));
+define('DB_PASS', env('DB_PASS', 'Tumukunde'));
 define('DB_CHARSET', env('DB_CHARSET', 'utf8mb4'));
 
 // Standardized to MariaDB only (removed SQLite support)

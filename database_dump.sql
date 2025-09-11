@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: Sep 10, 2025 at 09:46 PM
+-- Generation Time: Sep 11, 2025 at 08:11 PM
 -- Server version: 10.11.13-MariaDB-0ubuntu0.24.04.1
 -- PHP Version: 8.3.6
 
@@ -87,6 +87,41 @@ CREATE TABLE `api_keys` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `audit_log`
+--
+
+CREATE TABLE `audit_log` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `user_id` int(10) UNSIGNED DEFAULT NULL,
+  `action` varchar(100) NOT NULL,
+  `resource_type` varchar(100) DEFAULT NULL,
+  `resource_id` varchar(100) DEFAULT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `user_agent` varchar(255) DEFAULT NULL,
+  `new_values` longtext DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `audit_log`
+--
+
+INSERT INTO `audit_log` (`id`, `user_id`, `action`, `resource_type`, `resource_id`, `ip_address`, `user_agent`, `new_values`, `created_at`) VALUES
+(1, 1, 'login_failed_inactive', 'user', '1', '105.178.104.198', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '[]', '2025-09-11 18:55:47'),
+(2, 1, 'login_success', 'user', '1', '105.178.104.198', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '[]', '2025-09-11 19:11:33'),
+(3, 1, 'login_success', 'user', '1', '105.178.104.198', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '[]', '2025-09-11 19:27:53'),
+(4, 1, 'login_success', 'user', '1', '105.178.104.198', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '[]', '2025-09-11 19:33:28'),
+(5, 1, 'login_success', 'user', '1', '105.178.104.198', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '[]', '2025-09-11 19:36:42'),
+(6, 1, 'login_success', 'user', '1', '105.178.104.198', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '[]', '2025-09-11 19:39:47'),
+(7, 1, 'login_success', 'user', '1', '105.178.104.198', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '[]', '2025-09-11 19:41:07'),
+(8, 1, 'login_success', 'user', '1', '105.178.104.198', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '[]', '2025-09-11 19:41:10'),
+(9, 1, 'login_success', 'user', '1', '197.157.155.163', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '[]', '2025-09-11 21:46:44'),
+(10, 1, 'login_success', 'user', '1', '197.157.155.163', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '[]', '2025-09-11 21:50:31'),
+(11, 4, 'login_failed_inactive', 'user', '4', '197.157.155.163', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '[]', '2025-09-11 21:57:03');
 
 -- --------------------------------------------------------
 
@@ -314,6 +349,22 @@ CREATE TABLE `login_attempts` (
   `user_agent` text DEFAULT NULL,
   `attempted_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `login_attempts`
+--
+
+INSERT INTO `login_attempts` (`id`, `identifier`, `ip_address`, `success`, `user_agent`, `attempted_at`) VALUES
+(3, 'ellyj164@gmail.com', '172.69.254.164', 1, NULL, '2025-09-11 17:11:33'),
+(4, 'ellyj164@gmail.com', '172.69.254.164', 1, NULL, '2025-09-11 17:27:53'),
+(5, 'ellyj164@gmail.com', '172.69.254.164', 1, NULL, '2025-09-11 17:33:28'),
+(6, 'ellyj164@gmail.com', '172.69.254.164', 1, NULL, '2025-09-11 17:36:42'),
+(7, 'ellyj164@gmail.com', '172.69.254.165', 1, NULL, '2025-09-11 17:39:47'),
+(8, 'ellyj164@gmail.com', '172.69.254.164', 1, NULL, '2025-09-11 17:41:07'),
+(9, 'ellyj164@gmail.com', '172.69.254.164', 1, NULL, '2025-09-11 17:41:10'),
+(10, 'ellyj164@gmail.com', '172.68.42.185', 1, NULL, '2025-09-11 19:46:44'),
+(11, 'ellyj164@gmail.com', '197.234.242.181', 1, NULL, '2025-09-11 19:50:31'),
+(12, 'ellyj164@gmail.com', '197.234.242.181', 0, NULL, '2025-09-11 19:57:03');
 
 -- --------------------------------------------------------
 
@@ -779,6 +830,13 @@ CREATE TABLE `users` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Dumping data for table `users`
+--
+
+INSERT INTO `users` (`id`, `username`, `email`, `pass_hash`, `first_name`, `last_name`, `phone`, `role`, `status`, `verified_at`, `avatar`, `bio`, `preferences`, `two_fa_enabled`, `two_fa_secret`, `last_login_at`, `last_login_ip`, `created_at`, `updated_at`) VALUES
+(4, 'Joseph', 'ellyj164@gmail.com', '$argon2id$v=19$m=65536,t=4,p=3$Yjg2Y2dNN0wzdFZZOUEuUA$XCK6vnbTtHx4S8EJvZP0qHf3xXNl0UQKNxa9fIcTHWs', 'xxxx', 'Mark', '+250 789 721 783', 'customer', 'pending', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, '2025-09-11 17:56:21', '2025-09-11 19:56:21');
+
 -- --------------------------------------------------------
 
 --
@@ -801,19 +859,24 @@ CREATE TABLE `user_follows` (
 --
 
 CREATE TABLE `user_sessions` (
-  `id` varchar(128) NOT NULL,
+  `id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
-  `ip_address` varchar(45) NOT NULL,
+  `session_token` varchar(255) NOT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
   `user_agent` text DEFAULT NULL,
-  `is_mobile` tinyint(1) NOT NULL DEFAULT 0,
-  `is_bot` tinyint(1) NOT NULL DEFAULT 0,
-  `country` varchar(2) DEFAULT NULL,
-  `city` varchar(100) DEFAULT NULL,
-  `last_activity` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `expires_at` timestamp NOT NULL,
-  `data` longtext DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `expires_at` timestamp NULL DEFAULT NULL,
+  `is_active` tinyint(1) DEFAULT 1,
+  `csrf_token` varchar(64) NOT NULL,
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `user_sessions`
+--
+
+INSERT INTO `user_sessions` (`id`, `user_id`, `session_token`, `ip_address`, `user_agent`, `created_at`, `expires_at`, `is_active`, `csrf_token`, `updated_at`) VALUES
+(1, 1, 'e1654d2204296d2e9e2e580616a9744bdde20c55f326981c90dd58e01e1e2d0dacc37f6992964a9a4ae3f1f1f0fa3653656d90cc1e5ee1448442b4522e62a81b', '197.157.155.163', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-09-11 19:50:31', '2025-09-11 20:50:31', 1, '09331009433d0babe15f2a59f0705954d359e6951cc10c6ea8ab261b6ea72854', '2025-09-11 21:50:31');
 
 -- --------------------------------------------------------
 
@@ -897,6 +960,15 @@ ALTER TABLE `api_keys`
   ADD KEY `idx_is_active` (`is_active`),
   ADD KEY `idx_last_used_at` (`last_used_at`),
   ADD KEY `idx_expires_at` (`expires_at`);
+
+--
+-- Indexes for table `audit_log`
+--
+ALTER TABLE `audit_log`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_user_id` (`user_id`),
+  ADD KEY `idx_created_at` (`created_at`),
+  ADD KEY `idx_action` (`action`);
 
 --
 -- Indexes for table `cart`
@@ -1253,8 +1325,7 @@ ALTER TABLE `user_follows`
 ALTER TABLE `user_sessions`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_user_id` (`user_id`),
-  ADD KEY `idx_ip_address` (`ip_address`),
-  ADD KEY `idx_last_activity` (`last_activity`),
+  ADD KEY `idx_session_token` (`session_token`),
   ADD KEY `idx_expires_at` (`expires_at`);
 
 --
@@ -1299,6 +1370,12 @@ ALTER TABLE `admin_activity_logs`
 --
 ALTER TABLE `api_keys`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `audit_log`
+--
+ALTER TABLE `audit_log`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `cart`
@@ -1364,7 +1441,7 @@ ALTER TABLE `live_stream_products`
 -- AUTO_INCREMENT for table `login_attempts`
 --
 ALTER TABLE `login_attempts`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `messages`
@@ -1484,13 +1561,19 @@ ALTER TABLE `transactions`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `user_follows`
 --
 ALTER TABLE `user_follows`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `user_sessions`
+--
+ALTER TABLE `user_sessions`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `vendors`
@@ -1507,12 +1590,6 @@ ALTER TABLE `wishlists`
 --
 -- Constraints for dumped tables
 --
-
---
--- Constraints for table `addresses`
---
-ALTER TABLE `addresses`
-  ADD CONSTRAINT `fk_addresses_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `admin_activity_logs`
@@ -1717,12 +1794,6 @@ ALTER TABLE `transactions`
 ALTER TABLE `user_follows`
   ADD CONSTRAINT `fk_user_follows_follower` FOREIGN KEY (`follower_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `fk_user_follows_following` FOREIGN KEY (`following_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
-
---
--- Constraints for table `user_sessions`
---
-ALTER TABLE `user_sessions`
-  ADD CONSTRAINT `fk_user_sessions_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `vendors`

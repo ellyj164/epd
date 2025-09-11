@@ -1,0 +1,10 @@
+[2025-09-11 15:52:53] [ERROR] Uncaught exception: Call to undefined method User::create() in /home/duns1/public_html/includes/models.php on line 81
+[2025-09-11 15:54:56] [ERROR] Registration error: There is no active transaction
+[2025-09-11 15:55:28] [ERROR] Uncaught exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'email' in 'WHERE' in /home/duns1/public_html/includes/functions.php on line 149
+[2025-09-11 16:39:33] [ERROR] Uncaught exception: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'ecommerce_platform.audit_log' doesn't exist in /home/duns1/public_html/includes/functions.php on line 516
+[2025-09-11 16:57:58] [ERROR] Registration error: There is no active transaction
+[2025-09-11 17:11:33] [ERROR] Uncaught exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'session_token' in 'INSERT INTO' in /home/duns1/public_html/includes/functions.php on line 419
+[2025-09-11 17:27:53] [ERROR] Uncaught exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'session_token' in 'INSERT INTO' in /home/duns1/public_html/includes/functions.php on line 403
+[2025-09-11 17:31:35] [ERROR] Registration error: There is no active transaction
+[2025-09-11 17:33:28] [ERROR] Uncaught exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'session_token' in 'INSERT INTO' in /home/duns1/public_html/includes/functions.php on line 403
+[2025-09-11 17:36:42] [ERROR] Uncaught exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'session_token' in 'INSERT INTO' in /home/duns1/public_html/includes/functions.php on line 403

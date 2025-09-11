@@ -108,12 +108,8 @@ class EmailService {
             return false;
         }
         
-        // Extract data variables for template
         extract($data);
-        
-        // Start output buffering
         ob_start();
-        
         try {
             include $templatePath;
             $content = ob_get_contents();
@@ -180,7 +176,6 @@ class EmailService {
                 
                 $success = $this->sendImmediate($emailData);
                 
-                // Update queue status
                 $updateStmt = $db->prepare("
                     UPDATE mail_queue 
                     SET status = ?, processed_at = ? 
@@ -195,7 +190,6 @@ class EmailService {
             } catch (Exception $e) {
                 Logger::error("Queue processing error for email {$email['id']}: " . $e->getMessage());
                 
-                // Mark as failed
                 $updateStmt = $db->prepare("
                     UPDATE mail_queue 
                     SET status = 'failed', processed_at = ?, error_message = ?
@@ -214,94 +208,118 @@ class EmailService {
 }
 
 /**
- * Email Token Management
+ * Ensure the email_tokens table exists
  */
-class EmailTokenManager {
-    /**
-     * Generate secure email token
-     */
-    public static function generateToken($userId, $type, $expiresInMinutes = 60) {
-        $db = Database::getInstance()->getConnection();
-        
-        // Clean up old tokens
-        self::cleanupExpiredTokens();
-        
-        $token = bin2hex(random_bytes(32));
-        $tokenHash = hash('sha256', $token);
-        $expiresAt = date('Y-m-d H:i:s', time() + ($expiresInMinutes * 60));
-        
-        $stmt = $db->prepare("
-            INSERT INTO email_tokens (user_id, type, token_hash, expires_at, created_at)
-            VALUES (?, ?, ?, ?, ?)
-        ");
-        
-        $success = $stmt->execute([
-            $userId,
-            $type,
-            $tokenHash,
-            $expiresAt,
-            date('Y-m-d H:i:s')
-        ]);
-        
-        return $success ? $token : false;
+if (!function_exists('ensure_email_tokens_table')) {
+    function ensure_email_tokens_table(PDO $db): void {
+        try {
+            $stmt = $db->prepare("
+                SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'email_tokens'
+            ");
+            $stmt->execute();
+            if ((int)$stmt->fetchColumn() > 0) return;
+        } catch (Throwable $e) {
+            // if INFORMATION_SCHEMA fails, attempt create anyway
+        }
+
+        $sql = "
+            CREATE TABLE IF NOT EXISTS email_tokens (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                user_id INT UNSIGNED NOT NULL,
+                type VARCHAR(50) NOT NULL,
+                token_hash CHAR(64) NOT NULL,
+                expires_at DATETIME NOT NULL,
+                used_at DATETIME NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY uniq_token_hash (token_hash),
+                INDEX idx_user_type (user_id, type),
+                INDEX idx_expires (expires_at),
+                CONSTRAINT fk_email_tokens_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ";
+        try { $db->exec($sql); } catch (Throwable $e) {}
     }
-    
-    /**
-     * Verify email token
-     */
-    public static function verifyToken($token, $type) {
-        $db = Database::getInstance()->getConnection();
-        
-        $tokenHash = hash('sha256', $token);
-        $now = date('Y-m-d H:i:s');
-        
-        $stmt = $db->prepare("
-            SELECT * FROM email_tokens 
-            WHERE token_hash = ? AND type = ? AND used_at IS NULL AND expires_at > ?
-        ");
-        $stmt->execute([$tokenHash, $type, $now]);
-        $tokenData = $stmt->fetch();
-        
-        if (!$tokenData) {
-            return false;
+}
+
+/**
+ * Email Token Management
+ * Guard against redeclaration and self-heal the email_tokens table.
+ */
+if (!class_exists('EmailTokenManager')) {
+    class EmailTokenManager {
+        public static function generateToken($userId, $type, $expiresInMinutes = 60) {
+            $db = Database::getInstance()->getConnection();
+            ensure_email_tokens_table($db);
+
+            self::cleanupExpiredTokens();
+            
+            $token = bin2hex(random_bytes(32));
+            $tokenHash = hash('sha256', $token);
+            $expiresAt = date('Y-m-d H:i:s', time() + ($expiresInMinutes * 60));
+            
+            $stmt = $db->prepare("
+                INSERT INTO email_tokens (user_id, type, token_hash, expires_at, created_at)
+                VALUES (?, ?, ?, ?, ?)
+            ");
+            
+            $success = $stmt->execute([
+                $userId,
+                $type,
+                $tokenHash,
+                $expiresAt,
+                date('Y-m-d H:i:s')
+            ]);
+            
+            return $success ? $token : false;
         }
         
-        // Mark token as used
-        $updateStmt = $db->prepare("
-            UPDATE email_tokens 
-            SET used_at = ? 
-            WHERE id = ?
-        ");
-        $updateStmt->execute([
-            date('Y-m-d H:i:s'),
-            $tokenData['id']
-        ]);
+        public static function verifyToken($token, $type) {
+            $db = Database::getInstance()->getConnection();
+            ensure_email_tokens_table($db);
+            
+            $tokenHash = hash('sha256', $token);
+            $now = date('Y-m-d H:i:s');
+            
+            $stmt = $db->prepare("
+                SELECT * FROM email_tokens 
+                WHERE token_hash = ? AND type = ? AND used_at IS NULL AND expires_at > ?
+            ");
+            $stmt->execute([$tokenHash, $type, $now]);
+            $tokenData = $stmt->fetch();
+            
+            if (!$tokenData) {
+                return false;
+            }
+            
+            $updateStmt = $db->prepare("
+                UPDATE email_tokens 
+                SET used_at = ? 
+                WHERE id = ?
+            ");
+            $updateStmt->execute([
+                date('Y-m-d H:i:s'),
+                $tokenData['id']
+            ]);
+            
+            return $tokenData;
+        }
         
-        return $tokenData;
-    }
-    
-    /**
-     * Clean up expired tokens
-     */
-    public static function cleanupExpiredTokens() {
-        $db = Database::getInstance()->getConnection();
-        
-        $now = date('Y-m-d H:i:s');
-        $stmt = $db->prepare("DELETE FROM email_tokens WHERE expires_at < ?");
-        $stmt->execute([$now]);
+        public static function cleanupExpiredTokens() {
+            $db = Database::getInstance()->getConnection();
+            ensure_email_tokens_table($db);
+            $now = date('Y-m-d H:i:s');
+            $stmt = $db->prepare("DELETE FROM email_tokens WHERE expires_at < ?");
+            $stmt->execute([$now]);
+        }
     }
 }
 
 /**
  * Notification Helpers
  */
-
-/**
- * Send welcome email to new user
- */
 function sendWelcomeEmail($user) {
     $emailService = EmailService::getInstance();
-    
     return $emailService->send(
         $user['email'],
         'Welcome to FezaMarket!',
@@ -313,18 +331,11 @@ function sendWelcomeEmail($user) {
     );
 }
 
-/**
- * Send email verification
- */
 function sendEmailVerification($user) {
     $token = EmailTokenManager::generateToken($user['id'], 'email_verification', 1440); // 24 hours
-    
-    if (!$token) {
-        return false;
-    }
+    if (!$token) return false;
     
     $emailService = EmailService::getInstance();
-    
     return $emailService->send(
         $user['email'],
         'Verify Your Email Address',
@@ -336,18 +347,11 @@ function sendEmailVerification($user) {
     );
 }
 
-/**
- * Send password reset email
- */
 function sendPasswordResetEmail($user) {
-    $token = EmailTokenManager::generateToken($user['id'], 'password_reset', 60); // 1 hour
-    
-    if (!$token) {
-        return false;
-    }
+    $token = EmailTokenManager::generateToken($user['id'], 'password_reset', 60);
+    if (!$token) return false;
     
     $emailService = EmailService::getInstance();
-    
     return $emailService->send(
         $user['email'],
         'Reset Your Password',
@@ -359,12 +363,8 @@ function sendPasswordResetEmail($user) {
     );
 }
 
-/**
- * Send order confirmation email
- */
 function sendOrderConfirmationEmail($order, $user) {
     $emailService = EmailService::getInstance();
-    
     return $emailService->send(
         $user['email'],
         "Order Confirmation - Order #{$order['id']}",
@@ -377,12 +377,8 @@ function sendOrderConfirmationEmail($order, $user) {
     );
 }
 
-/**
- * Send seller approval email
- */
 function sendSellerApprovalEmail($vendor, $user) {
     $emailService = EmailService::getInstance();
-    
     return $emailService->send(
         $user['email'],
         'Your Seller Account Has Been Approved!',
@@ -395,12 +391,8 @@ function sendSellerApprovalEmail($vendor, $user) {
     );
 }
 
-/**
- * Send login alert email
- */
 function sendLoginAlertEmail($user, $deviceInfo) {
     $emailService = EmailService::getInstance();
-    
     return $emailService->send(
         $user['email'],
         'New Sign-In to Your Account',

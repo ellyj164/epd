@@ -11,24 +11,22 @@ if (session_status() === PHP_SESSION_NONE) {
     ini_set('session.use_only_cookies', 1);
     ini_set('session.cookie_secure', isset($_SERVER['HTTPS']));
     ini_set('session.cookie_samesite', 'Strict');
-    
+
     session_start();
 }
 
 // Load configuration (includes environment variables)
 require_once __DIR__ . '/../config/config.php';
 
-// Load standardized database access
-require_once __DIR__ . '/db.php';
-
-// Load core functions
+// Load core functions first (defines Session, Logger, CSRF helpers, sanitizers, etc.)
 require_once __DIR__ . '/functions.php';
+
+// Load standardized database access and compatibility wrappers
+require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/database.php';
 
 // Load URL helpers and routing
 require_once __DIR__ . '/helpers.php';
-
-// Load database connection
-require_once __DIR__ . '/database.php';
 
 // Load enhanced email system
 require_once __DIR__ . '/email_system.php';
@@ -50,6 +48,142 @@ if (file_exists(__DIR__ . '/../assets/components/autoload.php')) {
     require_once __DIR__ . '/../assets/components/autoload.php';
 }
 
+/**
+ * Defensive guards: ensure core classes and functions exist before use.
+ * If functions.php wasn't loaded for any reason, attempt to load it again,
+ * and if still missing, define minimal fallbacks to avoid fatals.
+ */
+@require_once __DIR__ . '/functions.php';
+
+if (!class_exists('Session')) {
+    // Minimal fallback Session implementation
+    class Session {
+        public static function start() {
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+        }
+        public static function set($key, $value) {
+            self::start();
+            $_SESSION[$key] = $value;
+        }
+        public static function get($key, $default = null) {
+            self::start();
+            return $_SESSION[$key] ?? $default;
+        }
+        public static function remove($key) {
+            self::start();
+            unset($_SESSION[$key]);
+        }
+        public static function destroy() {
+            self::start();
+            session_unset();
+            session_destroy();
+        }
+        public static function isLoggedIn() {
+            return self::get('user_id') !== null;
+        }
+        public static function getUserId() {
+            return self::get('user_id');
+        }
+        public static function getUserRole() {
+            return self::get('user_role', 'customer');
+        }
+        public static function getIntendedUrl() {
+            $url = self::get('intended_url', '/');
+            self::remove('intended_url');
+            return $url;
+        }
+    }
+}
+
+if (!class_exists('Logger')) {
+    // Minimal fallback Logger implementation (logs to PHP error_log)
+    class Logger {
+        public static function log($message, $level = 'INFO') {
+            error_log('[' . $level . '] ' . $message);
+        }
+        public static function error($message)   { self::log($message, 'ERROR'); }
+        public static function info($message)    { self::log($message, 'INFO'); }
+        public static function warning($message) { self::log($message, 'WARNING'); }
+    }
+}
+
+// CSRF helpers fallback (in case functions.php failed to load)
+if (!function_exists('csrfToken')) {
+    function csrfToken() {
+        if (!Session::get('csrf_token')) {
+            Session::set('csrf_token', bin2hex(random_bytes(32)));
+        }
+        return Session::get('csrf_token');
+    }
+}
+if (!function_exists('verifyCsrfToken')) {
+    function verifyCsrfToken($token) {
+        return hash_equals(Session::get('csrf_token', ''), $token ?? '');
+    }
+}
+
+// Sanitization and validation fallbacks
+if (!function_exists('sanitizeInput')) {
+    function sanitizeInput($input) {
+        return htmlspecialchars(trim((string)$input), ENT_QUOTES, 'UTF-8');
+    }
+}
+if (!function_exists('validateEmail')) {
+    function validateEmail($email) {
+        return filter_var($email, FILTER_VALIDATE_EMAIL);
+    }
+}
+if (!function_exists('redirect')) {
+    function redirect($url) {
+        header("Location: {$url}");
+        exit;
+    }
+}
+
+// Secure session helper fallbacks used by login and auth flow
+if (!function_exists('generateSecureToken')) {
+    function generateSecureToken($length = 64) {
+        return bin2hex(random_bytes($length));
+    }
+}
+if (!function_exists('setSecureCookie')) {
+    function setSecureCookie($name, $value, $expire = 3600) {
+        setcookie($name, $value, [
+            'expires'  => time() + $expire,
+            'path'     => '/',
+            'domain'   => '',
+            'secure'   => isset($_SERVER['HTTPS']),
+            'httponly' => true,
+            'samesite' => 'Lax'
+        ]);
+    }
+}
+if (!function_exists('createSecureSession')) {
+    // Minimal fallback that does not persist to DB, but keeps the app functional
+    function createSecureSession($userId) {
+        session_regenerate_id(true);
+        $sessionToken = generateSecureToken();
+        $csrfToken = bin2hex(random_bytes(32));
+
+        Session::set('user_id', $userId);
+        Session::set('session_token', $sessionToken);
+        Session::set('csrf_token', $csrfToken);
+
+        setSecureCookie('session_token', $sessionToken);
+
+        return $sessionToken;
+    }
+}
+if (!function_exists('validateSessionToken')) {
+    // Fallback that validates against session only (no DB lookup)
+    function validateSessionToken($userId, $sessionToken) {
+        $stored = Session::get('session_token', '');
+        return $userId === Session::get('user_id') && hash_equals((string)$stored, (string)$sessionToken);
+    }
+}
+
 // Initialize session
 Session::start();
 
@@ -61,7 +195,7 @@ $cart_count = 0;
 if (Session::isLoggedIn()) {
     $user = new User();
     $current_user = $user->find(Session::getUserId());
-    
+
     $cart = new Cart();
     $cart_count = $cart->getCartCount(Session::getUserId());
 }
@@ -88,17 +222,8 @@ function includeNavigation() {
  * Route Helper
  */
 function getCurrentPage() {
-    return basename($_SERVER['REQUEST_URI'], '?' . $_SERVER['QUERY_STRING']);
-}
-
-/**
- * Image Helper
- */
-function getProductImageUrl($imagePath, $default = 'images/placeholder-product.jpg') {
-    if (empty($imagePath) || !file_exists(__DIR__ . '/' . $imagePath)) {
-        return $default;
-    }
-    return $imagePath;
+    $uri = $_SERVER['REQUEST_URI'] ?? '/';
+    return basename(parse_url($uri, PHP_URL_PATH));
 }
 
 /**
@@ -108,18 +233,18 @@ function handleError($errno, $errstr, $errfile, $errline) {
     if (!(error_reporting() & $errno)) {
         return false;
     }
-    
+
     $message = "Error: [$errno] $errstr in $errfile on line $errline";
     Logger::error($message);
-    
-    if (DEBUG_MODE) {
+
+    if (defined('DEBUG_MODE') && DEBUG_MODE) {
         echo "<div style='background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 10px; margin: 10px 0; border-radius: 4px;'>";
         echo "<strong>Debug Error:</strong> $errstr<br>";
         echo "<strong>File:</strong> $errfile<br>";
         echo "<strong>Line:</strong> $errline";
         echo "</div>";
     }
-    
+
     return true;
 }
 
@@ -131,8 +256,8 @@ set_error_handler('handleError');
 function handleException($exception) {
     $message = "Uncaught exception: " . $exception->getMessage() . " in " . $exception->getFile() . " on line " . $exception->getLine();
     Logger::error($message);
-    
-    if (DEBUG_MODE) {
+
+    if (defined('DEBUG_MODE') && DEBUG_MODE) {
         echo "<div style='background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 10px; margin: 10px 0; border-radius: 4px;'>";
         echo "<strong>Exception:</strong> " . $exception->getMessage() . "<br>";
         echo "<strong>File:</strong> " . $exception->getFile() . "<br>";
@@ -170,7 +295,7 @@ foreach ($directories as $dir) {
  */
 function performHealthCheck() {
     $checks = [];
-    
+
     // Database connectivity
     try {
         Database::getInstance()->getConnection();
@@ -178,7 +303,7 @@ function performHealthCheck() {
     } catch (Exception $e) {
         $checks['database'] = ['status' => 'error', 'message' => 'Database connection failed: ' . $e->getMessage()];
     }
-    
+
     // Required directories
     $requiredDirs = [UPLOAD_PATH, ERROR_LOG_PATH];
     $dirCheck = true;
@@ -189,11 +314,10 @@ function performHealthCheck() {
         }
     }
     $checks['directories'] = ['status' => $dirCheck ? 'ok' : 'error', 'message' => $dirCheck ? 'All directories writable' : 'Directory permissions issue'];
-    
+
     // Configuration
-    $configCheck = !empty(SECRET_KEY) && SECRET_KEY !== 'your-secret-key-change-this-in-production-minimum-32-chars';
+    $configCheck = defined('SECRET_KEY') && !empty(SECRET_KEY) && SECRET_KEY !== 'your-secret-key-change-this-in-production-minimum-32-chars';
     $checks['config'] = ['status' => $configCheck ? 'ok' : 'warning', 'message' => $configCheck ? 'Configuration secure' : 'Default secret key detected'];
-    
+
     return $checks;
 }
-?>
