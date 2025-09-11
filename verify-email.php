@@ -1,235 +1,269 @@
 <?php
 /**
- * Email Verification Page
+ * Email Verification Page - OTP Based
  * E-Commerce Platform
  */
 
 require_once __DIR__ . '/includes/init.php';
 
-$message = '';
-$success = false;
-$token = $_GET['token'] ?? '';
+$email = $_GET['email'] ?? '';
+$errors = [];
+$success_message = '';
 
-if (empty($token)) {
-    $message = 'Invalid verification link. Please check your email for the correct link.';
-} else {
-    try {
-        // Verify the token
-        $tokenData = EmailTokenManager::verifyToken($token, 'email_verification');
-        
-        if (!$tokenData) {
-            $message = 'This verification link is invalid or has expired. Please request a new verification email.';
-        } else {
-            // Token is valid, activate the user
+// Redirect to register if no email provided
+if (empty($email)) {
+    redirect('/register.php');
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $otp = $_POST['otp'] ?? '';
+    
+    if (empty($otp)) {
+        $errors[] = 'Please enter the verification code.';
+    } else {
+        try {
+            // Find user by email
             $user = new User();
-            $userData = $user->find($tokenData['user_id']);
+            $userData = $user->findByEmail($email);
             
-            if (!$userData) {
-                $message = 'User account not found. Please contact support.';
-            } elseif ($userData['status'] === 'active' && $userData['verified_at']) {
-                // Already verified
-                $success = true;
-                $message = 'Your email has already been verified. You can now log in to your account.';
-            } else {
-                // Verify the user account
-                $verified = $user->verifyEmail($tokenData['user_id']);
-                
-                if ($verified) {
-                    $success = true;
-                    $message = 'Email verified successfully! Your account is now active and you can log in.';
-                    
-                    // Log the verification
-                    Logger::info("Email verified for user {$userData['email']}");
-                    logSecurityEvent($tokenData['user_id'], 'email_verified', 'user', $tokenData['user_id']);
-                    
+            if ($userData) {
+                if ($userData['status'] === 'active' && $userData['verified_at']) {
+                    $success_message = 'This email has already been verified. You can now log in.';
                 } else {
-                    $message = 'Failed to verify your email. Please try again or contact support.';
-                    Logger::error("Failed to verify email for user ID {$tokenData['user_id']}");
+                    // Look for valid OTP in email_tokens table
+                    $db = Database::getInstance()->getConnection();
+                    $stmt = $db->prepare("
+                        SELECT * FROM email_tokens 
+                        WHERE user_id = ? AND token = ? AND type = 'email_verification' 
+                        AND expires_at > NOW() AND used_at IS NULL
+                    ");
+                    $stmt->execute([$userData['id'], $otp]);
+                    $tokenData = $stmt->fetch();
+                    
+                    if ($tokenData) {
+                        // Valid OTP - verify the user
+                        $verified = $user->verifyEmail($userData['id']);
+                        
+                        if ($verified) {
+                            // Mark token as used
+                            $updateStmt = $db->prepare("
+                                UPDATE email_tokens 
+                                SET used_at = NOW() 
+                                WHERE id = ?
+                            ");
+                            $updateStmt->execute([$tokenData['id']]);
+                            
+                            $success_message = 'Email verified successfully! You can now proceed to login.';
+                            Logger::info("Email verified for user {$userData['email']}");
+                            
+                        } else {
+                            $errors[] = 'Failed to verify your email. Please try again.';
+                        }
+                    } else {
+                        $errors[] = 'Invalid or expired verification code. Please try again.';
+                    }
                 }
+            } else {
+                $errors[] = 'User not found.';
             }
+            
+        } catch (Exception $e) {
+            $errors[] = 'Database error. Please try again.';
+            Logger::error("Email verification error: " . $e->getMessage());
         }
-        
-    } catch (Exception $e) {
-        $message = 'An error occurred during verification. Please try again or contact support.';
-        Logger::error("Email verification error: " . $e->getMessage());
     }
 }
 
-$page_title = 'Email Verification';
+$page_title = 'Verify Email';
 includeHeader($page_title);
 ?>
 
-<div class="container">
-    <div class="row justify-center">
-        <div class="col-6">
-            <div class="card mt-4">
-                <div class="card-body text-center">
-                    <?php if ($success): ?>
-                        <div class="verification-success">
-                            <div class="success-icon">✅</div>
-                            <h1 class="card-title">Email Verified!</h1>
-                            <div class="alert alert-success">
-                                <?php echo htmlspecialchars($message); ?>
-                            </div>
-                            
-                            <div class="action-buttons">
-                                <a href="/login.php" class="btn btn-primary btn-lg">
-                                    Sign In to Your Account
-                                </a>
-                                <a href="/" class="btn btn-outline">
-                                    Continue Browsing
-                                </a>
-                            </div>
-                        </div>
-                    <?php else: ?>
-                        <div class="verification-error">
-                            <div class="error-icon">❌</div>
-                            <h1 class="card-title">Verification Failed</h1>
-                            <div class="alert alert-error">
-                                <?php echo htmlspecialchars($message); ?>
-                            </div>
-                            
-                            <div class="action-buttons">
-                                <a href="/resend-verification.php" class="btn btn-primary">
-                                    Request New Verification Email
-                                </a>
-                                <a href="/register.php" class="btn btn-outline">
-                                    Create New Account
-                                </a>
-                                <a href="/contact.php" class="btn btn-outline">
-                                    Contact Support
-                                </a>
-                            </div>
-                        </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo $page_title; ?></title>
+    <style>
+        :root { 
+            --primary-color: #0052cc; 
+            --primary-hover: #0041a3; 
+            --secondary-color: #f4f7f6; 
+            --text-color: #333; 
+            --light-text-color: #777; 
+            --border-color: #ddd; 
+            --error-bg: #f8d7da; 
+            --error-text: #721c24; 
+            --success-bg: #d4edda; 
+            --success-text: #155724; 
+            --footer-bg: #ffffff; 
+            --footer-text: #555555; 
+        }
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            margin: 0; 
+            display: flex; 
+            flex-direction: column; 
+            min-height: 100vh; 
+            background-color: var(--secondary-color); 
+        }
+        main.auth-container { 
+            flex-grow: 1; 
+            display: flex; 
+            width: 100%; 
+        }
+        .auth-panel { 
+            flex: 1; 
+            background: linear-gradient(135deg, #0052cc, #007bff); 
+            color: white; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            padding: 50px; 
+            text-align: center; 
+        }
+        .auth-panel h2 { 
+            font-size: 2rem; 
+            margin-bottom: 15px; 
+        }
+        .auth-panel p { 
+            font-size: 1.1rem; 
+            line-height: 1.6; 
+            max-width: 350px; 
+        }
+        .auth-form-section { 
+            flex: 1; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            padding: 50px; 
+            background: #fff; 
+        }
+        .form-box { 
+            width: 100%; 
+            max-width: 400px; 
+            text-align: center; 
+        }
+        .form-box h1 { 
+            color: var(--text-color); 
+            margin-bottom: 10px; 
+            font-size: 2.2rem; 
+        }
+        .form-box .form-subtitle { 
+            color: var(--light-text-color); 
+            margin-bottom: 30px; 
+        }
+        .form-box .form-subtitle strong { 
+            color: var(--text-color); 
+        }
+        .form-group input { 
+            width: 100%; 
+            padding: 12px 15px; 
+            border: 1px solid var(--border-color); 
+            border-radius: 5px; 
+            box-sizing: border-box; 
+            font-size: 1.5rem; 
+            transition: border-color 0.3s; 
+            text-align: center; 
+            letter-spacing: 0.5em; 
+        }
+        .form-group input:focus { 
+            outline: none; 
+            border-color: var(--primary-color); 
+        }
+        .auth-button { 
+            width: 100%; 
+            padding: 14px; 
+            background-color: var(--primary-color); 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-size: 1.1rem; 
+            font-weight: 700; 
+            transition: background-color 0.3s; 
+            margin-top: 20px; 
+        }
+        .auth-button:hover { 
+            background-color: var(--primary-hover); 
+        }
+        .message-area { 
+            margin-bottom: 20px; 
+        }
+        .message { 
+            padding: 15px; 
+            border-radius: 5px; 
+            text-align: center; 
+        }
+        .error-message { 
+            color: var(--error-text); 
+            background-color: var(--error-bg); 
+        }
+        .success-message { 
+            color: var(--success-text); 
+            background-color: var(--success-bg); 
+        }
+        .bottom-link { 
+            margin-top: 25px; 
+        }
+        .bottom-link a { 
+            color: var(--primary-color); 
+            text-decoration: none; 
+            font-weight: 600; 
+        }
+        @media (max-width: 992px) { 
+            .auth-panel { 
+                display: none; 
+            } 
+            .auth-form-section { 
+                padding: 30px; 
+            } 
+        }
+    </style>
+</head>
+<body>
+    <main class="auth-container">
+        <div class="auth-panel">
+            <h2>One Last Step</h2>
+            <p>Confirm your email to secure your account and unlock all features.</p>
+        </div>
+        <div class="auth-form-section">
+            <div class="form-box">
+                <h1>Verify Your Email</h1>
+                <p class="form-subtitle">An 8-digit code has been sent to<br><strong><?php echo htmlspecialchars($email); ?></strong></p>
+                
+                <div class="message-area">
+                    <?php if (!empty($errors)): ?>
+                        <div class="message error-message"><?php echo htmlspecialchars($errors[0]); ?></div>
+                    <?php endif; ?>
+                    <?php if ($success_message): ?>
+                        <div class="message success-message"><?php echo htmlspecialchars($success_message); ?></div>
                     <?php endif; ?>
                 </div>
-            </div>
-            
-            <!-- Help Section -->
-            <div class="card mt-4">
-                <div class="card-body">
-                    <h2>Need Help?</h2>
-                    <ul class="help-list">
-                        <li>If you can't find the verification email, check your spam/junk folder</li>
-                        <li>Verification links expire after 24 hours for security</li>
-                        <li>You can request a new verification email if needed</li>
-                        <li>Contact our support team if you continue to experience issues</li>
-                    </ul>
+                
+                <?php if (!$success_message): ?>
+                    <form action="verify-email.php?email=<?php echo urlencode($email); ?>" method="post">
+                        <div class="form-group">
+                            <input type="text" name="otp" maxlength="8" required placeholder="Enter 8-digit code">
+                        </div>
+                        <button type="submit" class="auth-button">Verify Account</button>
+                    </form>
+                <?php endif; ?>
+                
+                <?php if ($success_message): ?>
+                    <div class="bottom-link">
+                        <a href="login.php">Proceed to Login</a>
+                    </div>
+                <?php endif; ?>
+                
+                <div class="bottom-link">
+                    <a href="resend-verification.php?email=<?php echo urlencode($email); ?>">Resend Code</a>
                 </div>
             </div>
         </div>
-    </div>
-</div>
-
-<style>
-.verification-success, .verification-error {
-    padding: 2rem 0;
-}
-
-.success-icon, .error-icon {
-    font-size: 4rem;
-    margin-bottom: 1rem;
-}
-
-.action-buttons {
-    margin-top: 2rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    align-items: center;
-}
-
-.action-buttons .btn {
-    min-width: 250px;
-}
-
-.help-list {
-    list-style: none;
-    padding: 0;
-}
-
-.help-list li {
-    padding: 0.5rem 0;
-    border-bottom: 1px solid #e5e7eb;
-}
-
-.help-list li:last-child {
-    border-bottom: none;
-}
-
-.help-list li:before {
-    content: "💡 ";
-    margin-right: 0.5rem;
-}
-
-.alert {
-    padding: 1rem;
-    border-radius: 6px;
-    margin: 1rem 0;
-}
-
-.alert-success {
-    background: #d1fae5;
-    border: 1px solid #a7f3d0;
-    color: #065f46;
-}
-
-.alert-error {
-    background: #fee2e2;
-    border: 1px solid #fca5a5;
-    color: #991b1b;
-}
-
-.card {
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.card-body {
-    padding: 2rem;
-}
-
-.btn {
-    padding: 0.75rem 1.5rem;
-    border-radius: 6px;
-    text-decoration: none;
-    font-weight: 600;
-    transition: all 0.3s;
-    display: inline-block;
-    text-align: center;
-}
-
-.btn-primary {
-    background: #3b82f6;
-    color: white;
-    border: 1px solid #3b82f6;
-}
-
-.btn-primary:hover {
-    background: #2563eb;
-}
-
-.btn-outline {
-    background: white;
-    color: #374151;
-    border: 1px solid #d1d5db;
-}
-
-.btn-outline:hover {
-    background: #f9fafb;
-}
-
-.btn-lg {
-    padding: 1rem 2rem;
-    font-size: 1.125rem;
-}
-
-@media (max-width: 768px) {
-    .action-buttons .btn {
-        min-width: 200px;
-    }
-}
-</style>
+    </main>
+</body>
+</html>
 
 <?php includeFooter(); ?>

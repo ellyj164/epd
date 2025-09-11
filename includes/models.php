@@ -63,6 +63,10 @@ class User extends BaseModel {
             // Start transaction
             $this->db->beginTransaction();
             
+            // Generate OTP for email verification (8-digit number)
+            $otp = random_int(10000000, 99999999);
+            $otp_expiry = date('Y-m-d H:i:s', strtotime('+15 minutes'));
+            
             // Prepare user data with pending status
             $userData = [
                 'username' => $data['username'],
@@ -85,42 +89,49 @@ class User extends BaseModel {
                 return false;
             }
             
-            // Commit user creation
-            $this->db->commit();
+            // Store OTP in email_tokens table (reusing existing structure)
+            $stmt = $this->db->prepare("
+                INSERT INTO email_tokens (user_id, token, type, email, expires_at, created_at)
+                VALUES (?, ?, 'email_verification', ?, ?, ?)
+            ");
+            $otpStored = $stmt->execute([
+                $userId,
+                (string)$otp, // Store OTP as token
+                $userData['email'],
+                $otp_expiry,
+                date('Y-m-d H:i:s')
+            ]);
             
-            // Create email verification token
-            $token = EmailTokenManager::generateToken($userId, 'email_verification', 1440); // 24 hours
-            
-            if (!$token) {
-                // Token creation failed, but user is already created
-                Logger::error("Failed to create email verification token for user {$userId}");
-                // Don't return false here - user is created, just token failed
-                Logger::info("User registered successfully but email verification token failed: {$userData['email']}");
-                return $userId;
+            if (!$otpStored) {
+                $this->db->rollBack();
+                Logger::error("Failed to store OTP for user {$userId}");
+                return false;
             }
             
-            // Send verification email immediately (not queued)
-            $emailService = EmailService::getInstance();
-            $emailSent = $emailService->send(
-                $userData['email'],
-                'Email Verification Required',
-                'email_verification',
-                [
-                    'user' => $userData,
-                    'token' => $token,
-                    'verification_url' => url("verify-email.php?token={$token}")
-                ],
-                ['immediate' => true] // Send immediately instead of queuing
-            );
+            // Commit user creation and OTP storage
+            $this->db->commit();
+            
+            // Send verification email with OTP (simple mail function like reference)
+            $subject = "Verify Your Email Address - " . FROM_NAME;
+            $message = "Hello {$userData['first_name']},\n\n";
+            $message .= "Thank you for registering with " . FROM_NAME . ". ";
+            $message .= "Your 8-digit verification code is: {$otp}\n\n";
+            $message .= "This code will expire in 15 minutes.\n\n";
+            $message .= "Please use this code to verify your email address.\n\n";
+            $message .= "Regards,\n" . FROM_NAME;
+            
+            $headers = "From: " . FROM_EMAIL;
+            
+            $emailSent = mail($userData['email'], $subject, $message, $headers);
             
             if (!$emailSent) {
                 Logger::error("Failed to send verification email to user {$userId}");
-                // Don't return false here - user is created, token exists, just email failed
+                // Don't return false here - user is created and OTP is stored
                 Logger::info("User registered successfully but email sending failed: {$userData['email']}");
-                return $userId;
+            } else {
+                Logger::info("User registered successfully with OTP email sent: {$userData['email']}");
             }
             
-            Logger::info("User registered successfully with email verification: {$userData['email']}");
             return $userId;
             
         } catch (Exception $e) {

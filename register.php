@@ -79,8 +79,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             if ($userId) {
                 Logger::info("New user registered: {$formData['email']}");
-                $success = 'Account created successfully! Please check your email and click the verification link to activate your account.';
-                $formData = []; // Clear form
+                // Redirect to OTP verification page (like reference implementation)
+                redirect("/verify-email.php?email=" . urlencode($formData['email']));
             } else {
                 $error = 'Failed to create account or send verification email. Please try again.';
             }
