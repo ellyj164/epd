@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $token = EmailTokenManager::generateToken($userData['id'], 'email_verification', 1440); // 24 hours
                 
                 if ($token) {
-                    // Send verification email
+                    // Send verification email immediately
                     $emailService = EmailService::getInstance();
                     $emailSent = $emailService->send(
                         $email,
@@ -41,7 +41,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             'user' => $userData,
                             'token' => $token,
                             'verification_url' => url("verify-email.php?token={$token}")
-                        ]
+                        ],
+                        ['immediate' => true] // Send immediately instead of queuing
                     );
                     
                     if ($emailSent) {

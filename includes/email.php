@@ -343,7 +343,8 @@ function sendEmailVerification($user) {
         [
             'user' => $user,
             'verification_url' => url('verify-email.php?token=' . $token)
-        ]
+        ],
+        ['immediate' => true] // Send immediately instead of queuing
     );
 }
 

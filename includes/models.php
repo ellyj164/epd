@@ -99,7 +99,7 @@ class User extends BaseModel {
                 return $userId;
             }
             
-            // Send verification email
+            // Send verification email immediately (not queued)
             $emailService = EmailService::getInstance();
             $emailSent = $emailService->send(
                 $userData['email'],
@@ -109,7 +109,8 @@ class User extends BaseModel {
                     'user' => $userData,
                     'token' => $token,
                     'verification_url' => url("verify-email.php?token={$token}")
-                ]
+                ],
+                ['immediate' => true] // Send immediately instead of queuing
             );
             
             if (!$emailSent) {
