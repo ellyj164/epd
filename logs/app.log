@@ -1,0 +1,6 @@
+[2025-09-12 00:46:44] PHP Error [Warning]: session_start(): Session cannot be started after headers have already been sent in /home/runner/work/epd/epd/includes/functions.php on line 13
+IP: unknown | User-Agent: unknown | URI: unknown
+--------------------------------------------------------------------------------
+[2025-09-12 00:46:44] PHP Error [Warning]: session_start(): Session cannot be started after headers have already been sent in /home/runner/work/epd/epd/includes/functions.php on line 13
+IP: unknown | User-Agent: unknown | URI: unknown
+--------------------------------------------------------------------------------
