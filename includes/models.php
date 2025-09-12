@@ -63,10 +63,6 @@ class User extends BaseModel {
             // Start transaction
             $this->db->beginTransaction();
             
-            // Generate OTP for email verification (8-digit number)
-            $otp = random_int(10000000, 99999999);
-            $otp_expiry = date('Y-m-d H:i:s', strtotime('+15 minutes'));
-            
             // Prepare user data with pending status
             $userData = [
                 'username' => $data['username'],
@@ -89,27 +85,17 @@ class User extends BaseModel {
                 return false;
             }
             
-            // Store OTP in email_tokens table (reusing existing structure)
-            $stmt = $this->db->prepare("
-                INSERT INTO email_tokens (user_id, token, type, email, expires_at, created_at)
-                VALUES (?, ?, 'email_verification', ?, ?, ?)
-            ");
-            $otpStored = $stmt->execute([
-                $userId,
-                (string)$otp, // Store OTP as token
-                $userData['email'],
-                $otp_expiry,
-                date('Y-m-d H:i:s')
-            ]);
+            // Commit user creation first
+            $this->db->commit();
             
-            if (!$otpStored) {
-                $this->db->rollBack();
-                Logger::error("Failed to store OTP for user {$userId}");
+            // Generate secure OTP using EmailTokenManager
+            $tokenManager = new EmailTokenManager();
+            $otp = $tokenManager->generateToken($userId, 'email_verification', $userData['email'], 15);
+            
+            if (!$otp) {
+                Logger::error("Failed to generate secure OTP for user {$userId}");
                 return false;
             }
-            
-            // Commit user creation and OTP storage
-            $this->db->commit();
             
             // Send verification email with OTP (simple mail function like reference)
             $subject = "Verify Your Email Address - " . FROM_NAME;

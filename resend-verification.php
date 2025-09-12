@@ -28,32 +28,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif ($userData['status'] === 'active' && $userData['verified_at']) {
                 $success = 'Your email is already verified. You can log in to your account.';
             } else {
-                // Generate new OTP for email verification (8-digit number)
-                $otp = random_int(10000000, 99999999);
-                $otp_expiry = date('Y-m-d H:i:s', strtotime('+15 minutes'));
+                // Generate new secure OTP using EmailTokenManager
+                $tokenManager = new EmailTokenManager();
+                $otp = $tokenManager->generateToken($userData['id'], 'email_verification', $email, 15);
                 
-                // Clear any existing OTP tokens for this user
-                $db = Database::getInstance()->getConnection();
-                $deleteStmt = $db->prepare("
-                    DELETE FROM email_tokens 
-                    WHERE user_id = ? AND type = 'email_verification'
-                ");
-                $deleteStmt->execute([$userData['id']]);
-                
-                // Store new OTP in email_tokens table
-                $stmt = $db->prepare("
-                    INSERT INTO email_tokens (user_id, token, type, email, expires_at, created_at)
-                    VALUES (?, ?, 'email_verification', ?, ?, ?)
-                ");
-                $otpStored = $stmt->execute([
-                    $userData['id'],
-                    (string)$otp, // Store OTP as token
-                    $email,
-                    $otp_expiry,
-                    date('Y-m-d H:i:s')
-                ]);
-                
-                if ($otpStored) {
+                if ($otp) {
                     // Send verification email with OTP (simple mail function like reference)
                     $subject = "Verify Your Email Address - " . FROM_NAME;
                     $message = "Hello {$userData['first_name']},\n\n";

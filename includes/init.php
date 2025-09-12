@@ -15,6 +15,9 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Set UTC timezone for consistent timestamp handling (Security requirement)
+date_default_timezone_set('UTC');
+
 // Load configuration (includes environment variables)
 require_once __DIR__ . '/../config/config.php';
 
@@ -30,6 +33,15 @@ require_once __DIR__ . '/helpers.php';
 
 // Load enhanced email system
 require_once __DIR__ . '/email_system.php';
+
+// Load secure EmailTokenManager for OTP verification
+require_once __DIR__ . '/EmailTokenManager.php';
+
+// Load global error handler
+require_once __DIR__ . '/GlobalErrorHandler.php';
+
+// Initialize global error handling
+GlobalErrorHandler::initialize();
 
 // Load legacy email system for compatibility
 if (file_exists(__DIR__ . '/email.php')) {

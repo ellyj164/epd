@@ -14,38 +14,80 @@ $product = new Product();
 $order = new Order();
 $vendor = new Vendor();
 
-// Get comprehensive dashboard statistics
-$stats = [
-    'total_users' => $user->count(),
-    'active_users' => $user->count("status = 'active'"),
-    'pending_users' => $user->count("status = 'pending'"),
-    'total_products' => $product->count(),
-    'active_products' => $product->count("status = 'active'"),
-    'total_orders' => $order->count(),
-    'pending_orders' => $order->count("status = 'pending'"),
-    'processing_orders' => $order->count("status = 'processing'"),
-    'total_vendors' => $vendor->count(),
-    'pending_vendors' => count($vendor->getPending()),
-    'order_stats' => $order->getOrderStats()
-];
+// Get comprehensive dashboard statistics with error handling
+$stats = [];
+try {
+    $stats = [
+        'total_users' => $user->count(),
+        'active_users' => $user->count("status = 'active'"),
+        'pending_users' => $user->count("status = 'pending'"),
+        'total_products' => $product->count(),
+        'active_products' => $product->count("status = 'active'"),
+        'total_orders' => $order->count(),
+        'pending_orders' => $order->count("status = 'pending'"),
+        'processing_orders' => $order->count("status = 'processing'"),
+        'total_vendors' => $vendor->count(),
+        'pending_vendors' => count($vendor->getPending()),
+        'order_stats' => $order->getOrderStats()
+    ];
+} catch (Exception $e) {
+    Logger::error("Admin dashboard stats error: " . $e->getMessage());
+    $stats = [
+        'total_users' => 0,
+        'active_users' => 0,
+        'pending_users' => 0,
+        'total_products' => 0,
+        'active_products' => 0,
+        'total_orders' => 0,
+        'pending_orders' => 0,
+        'processing_orders' => 0,
+        'total_vendors' => 0,
+        'pending_vendors' => 0,
+        'order_stats' => []
+    ];
+    $dashboard_error = "Unable to load dashboard statistics. Please check the debug page for more information.";
+}
 
-// Recent activity with enhanced details
-$recentOrders = $order->findAll(5);
-$pendingVendors = $vendor->getPending();
+// Recent activity with enhanced details and error handling
+$recentOrders = [];
+$pendingVendors = [];
+try {
+    $recentOrders = $order->findAll(5);
+    $pendingVendors = $vendor->getPending();
+} catch (Exception $e) {
+    Logger::error("Admin dashboard recent activity error: " . $e->getMessage());
+}
 
-// Get recent user registrations
-$db = Database::getInstance()->getConnection();
-$stmt = $db->query("SELECT u.*, p.avatar_url FROM users u LEFT JOIN profiles p ON u.id = p.user_id ORDER BY u.created_at DESC LIMIT 5");
-$recentUsers = $stmt->fetchAll();
+// Get recent user registrations with error handling
+$recentUsers = [];
+try {
+    $db = Database::getInstance()->getConnection();
+    $stmt = $db->query("SELECT u.*, p.avatar_url FROM users u LEFT JOIN profiles p ON u.id = p.user_id ORDER BY u.created_at DESC LIMIT 5");
+    $recentUsers = $stmt->fetchAll();
+} catch (Exception $e) {
+    Logger::error("Admin dashboard recent users error: " . $e->getMessage());
+}
 
-// Get system health status
-$healthChecks = performHealthCheck();
+// Get system health status with error handling
+$healthChecks = [];
+try {
+    $healthChecks = performHealthCheck();
+} catch (Exception $e) {
+    Logger::error("Admin dashboard health checks error: " . $e->getMessage());
+}
 
 $page_title = 'Admin Dashboard';
 includeHeader($page_title);
 ?>
 
 <div class="container">
+    <?php if (isset($dashboard_error)): ?>
+        <div class="alert alert-warning mb-4">
+            <strong>⚠️ Dashboard Warning:</strong> <?php echo htmlspecialchars($dashboard_error); ?>
+            <a href="/admin/debug.php" class="btn btn-sm btn-outline ml-2">View Debug Info</a>
+        </div>
+    <?php endif; ?>
+    
     <div class="d-flex justify-between align-center mb-4">
         <h1>Admin Dashboard</h1>
         <div class="d-flex gap-2">
@@ -54,6 +96,7 @@ includeHeader($page_title);
             <a href="/admin/orders.php" class="btn btn-outline">📋 Orders</a>
             <a href="/admin/vendors.php" class="btn btn-outline">🏪 Vendors</a>
             <a href="/admin/analytics.php" class="btn btn-outline">📊 Analytics</a>
+            <a href="/admin/debug.php" class="btn btn-warning">🔧 Debug</a>
             <a href="/admin/settings.php" class="btn btn-primary">⚙️ Settings</a>
         </div>
     </div>
@@ -63,9 +106,14 @@ includeHeader($page_title);
         <div class="card-body">
             <h5 class="card-title">🏥 System Health</h5>
             <div class="row">
-                <?php foreach ($healthChecks as $checkName => $check): ?>
-                <div class="col-md-3">
-                    <div class="d-flex align-items-center">
+                <?php if (empty($healthChecks)): ?>
+                    <div class="col-12">
+                        <p class="text-muted">Health check information unavailable.</p>
+                    </div>
+                <?php else: ?>
+                    <?php foreach ($healthChecks as $checkName => $check): ?>
+                    <div class="col-md-3">
+                        <div class="d-flex align-items-center">
                         <span style="color: <?php echo $check['status'] === 'ok' ? '#28a745' : ($check['status'] === 'warning' ? '#ffc107' : '#dc3545'); ?>; font-size: 18px; margin-right: 8px;">
                             <?php echo $check['status'] === 'ok' ? '✅' : ($check['status'] === 'warning' ? '⚠️' : '❌'); ?>
                         </span>
@@ -75,7 +123,8 @@ includeHeader($page_title);
                         </div>
                     </div>
                 </div>
-                <?php endforeach; ?>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </div>
         </div>
     </div>

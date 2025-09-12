@@ -30,37 +30,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($userData['status'] === 'active' && $userData['verified_at']) {
                     $success_message = 'This email has already been verified. You can now log in.';
                 } else {
-                    // Look for valid OTP in email_tokens table
-                    $db = Database::getInstance()->getConnection();
-                    $stmt = $db->prepare("
-                        SELECT * FROM email_tokens 
-                        WHERE user_id = ? AND token = ? AND type = 'email_verification' 
-                        AND expires_at > NOW() AND used_at IS NULL
-                    ");
-                    $stmt->execute([$userData['id'], $otp]);
-                    $tokenData = $stmt->fetch();
+                    // Use secure EmailTokenManager for verification
+                    $tokenManager = new EmailTokenManager();
+                    $verificationResult = $tokenManager->verifyToken(
+                        $otp, 
+                        'email_verification', 
+                        $userData['id'], 
+                        $userData['email']
+                    );
                     
-                    if ($tokenData) {
-                        // Valid OTP - verify the user
+                    if ($verificationResult['success']) {
+                        // Verify the user account
                         $verified = $user->verifyEmail($userData['id']);
                         
                         if ($verified) {
-                            // Mark token as used
-                            $updateStmt = $db->prepare("
-                                UPDATE email_tokens 
-                                SET used_at = NOW() 
-                                WHERE id = ?
-                            ");
-                            $updateStmt->execute([$tokenData['id']]);
-                            
                             $success_message = 'Email verified successfully! You can now proceed to login.';
                             Logger::info("Email verified for user {$userData['email']}");
-                            
                         } else {
                             $errors[] = 'Failed to verify your email. Please try again.';
                         }
                     } else {
-                        $errors[] = 'Invalid or expired verification code. Please try again.';
+                        // Use generic error message for security
+                        if ($verificationResult['rate_limited']) {
+                            $errors[] = 'Too many verification attempts. Please wait before trying again.';
+                        } else {
+                            $errors[] = 'Invalid or expired verification code. Please try again.';
+                        }
+                        Logger::warning("Failed OTP verification for email: {$email}");
                     }
                 }
             } else {
