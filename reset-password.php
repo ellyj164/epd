@@ -20,7 +20,22 @@ if (empty($token)) {
 }
 
 // Verify token exists and is valid
-$tokenData = verifyPasswordResetToken($token);
+$tokenData = null;
+if (!empty($token)) {
+    try {
+        $db = Database::getInstance()->getConnection();
+        $stmt = $db->prepare("
+            SELECT * FROM email_tokens 
+            WHERE token = ? AND type = 'password_reset' 
+            AND expires_at > NOW() AND used_at IS NULL
+        ");
+        $stmt->execute([$token]);
+        $tokenData = $stmt->fetch();
+    } catch (Exception $e) {
+        Logger::error("Password reset token verification error: " . $e->getMessage());
+    }
+}
+
 if (!$tokenData) {
     $error = 'Invalid or expired reset token. Please request a new password reset.';
 }
@@ -42,10 +57,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$error) {
             $error = 'Passwords do not match';
         } else {
             // Reset password
-            if (usePasswordResetToken($token, $password)) {
-                logSecurityEvent($tokenData['user_id'], 'password_reset_completed', 'user', $tokenData['user_id']);
-                $success = 'Your password has been reset successfully. You can now <a href="/login.php">login</a> with your new password.';
-            } else {
+            try {
+                $user = new User();
+                $passwordUpdated = $user->updatePassword($tokenData['user_id'], $password);
+                
+                if ($passwordUpdated) {
+                    // Mark token as used
+                    $db = Database::getInstance()->getConnection();
+                    $updateStmt = $db->prepare("
+                        UPDATE email_tokens 
+                        SET used_at = NOW() 
+                        WHERE id = ?
+                    ");
+                    $updateStmt->execute([$tokenData['id']]);
+                    
+                    logSecurityEvent($tokenData['user_id'], 'password_reset_completed', 'user', $tokenData['user_id']);
+                    $success = 'Your password has been reset successfully. You can now <a href="/login.php">login</a> with your new password.';
+                } else {
+                    $error = 'Failed to reset password. Please try again.';
+                }
+            } catch (Exception $e) {
+                Logger::error("Password reset error: " . $e->getMessage());
                 $error = 'Failed to reset password. Please try again.';
             }
         }
