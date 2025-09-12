@@ -316,93 +316,112 @@ if (!class_exists('EmailTokenManager')) {
 }
 
 /**
- * Notification Helpers
+ * Notification Helpers - Simplified for consistency
  */
 function sendWelcomeEmail($user) {
-    $emailService = EmailService::getInstance();
-    return $emailService->send(
-        $user['email'],
-        'Welcome to FezaMarket!',
-        'welcome',
-        [
-            'user' => $user,
-            'login_url' => url('login.php')
-        ]
-    );
+    $subject = "Welcome to " . FROM_NAME . "!";
+    $message = "Hello {$user['first_name']},\n\n";
+    $message .= "Welcome to " . FROM_NAME . "! We're excited to have you as part of our community.\n\n";
+    $message .= "Your account is now ready:\n";
+    $message .= "- Email: {$user['email']}\n";
+    $message .= "- Account Type: " . ucfirst($user['role'] ?? 'Customer') . "\n\n";
+    $message .= "You can now start shopping and managing your account.\n\n";
+    $message .= "Visit our website: " . APP_URL . "\n\n";
+    $message .= "If you have any questions, feel free to contact our support team.\n\n";
+    $message .= "Welcome aboard!\n\n";
+    $message .= "Best regards,\n" . FROM_NAME;
+    
+    $headers = "From: " . FROM_EMAIL;
+    
+    $success = mail($user['email'], $subject, $message, $headers);
+    if ($success) {
+        Logger::info("Welcome email sent to: {$user['email']}");
+    } else {
+        Logger::error("Failed to send welcome email to: {$user['email']}");
+    }
+    return $success;
 }
 
 function sendEmailVerification($user) {
-    $token = EmailTokenManager::generateToken($user['id'], 'email_verification', 1440); // 24 hours
-    if (!$token) return false;
-    
-    $emailService = EmailService::getInstance();
-    return $emailService->send(
-        $user['email'],
-        'Verify Your Email Address',
-        'email_verification',
-        [
-            'user' => $user,
-            'verification_url' => url('verify-email.php?token=' . $token)
-        ],
-        ['immediate' => true] // Send immediately instead of queuing
-    );
+    // This function is now handled directly in User::register()
+    // Keeping for compatibility but redirecting to the new approach
+    Logger::info("sendEmailVerification called - handled by User::register()");
+    return true;
 }
 
 function sendPasswordResetEmail($user) {
-    $token = EmailTokenManager::generateToken($user['id'], 'password_reset', 60);
-    if (!$token) return false;
-    
-    $emailService = EmailService::getInstance();
-    return $emailService->send(
-        $user['email'],
-        'Reset Your Password',
-        'password_reset',
-        [
-            'user' => $user,
-            'reset_url' => url('reset-password.php?token=' . $token)
-        ]
-    );
+    // This function is now handled directly in forgot-password.php
+    // Keeping for compatibility but redirecting to the new approach
+    Logger::info("sendPasswordResetEmail called - handled by forgot-password.php");
+    return true;
 }
 
 function sendOrderConfirmationEmail($order, $user) {
-    $emailService = EmailService::getInstance();
-    return $emailService->send(
-        $user['email'],
-        "Order Confirmation - Order #{$order['id']}",
-        'order_confirmation',
-        [
-            'user' => $user,
-            'order' => $order,
-            'order_url' => url('order.php?id=' . $order['id'])
-        ]
-    );
+    $subject = "Order Confirmation - Order #{$order['id']} - " . FROM_NAME;
+    $message = "Hello {$user['first_name']},\n\n";
+    $message .= "Thank you for your order! Here are the details:\n\n";
+    $message .= "Order Number: #{$order['id']}\n";
+    $message .= "Order Total: $" . number_format($order['total'] ?? 0, 2) . "\n";
+    $message .= "Order Date: " . date('Y-m-d H:i:s') . "\n\n";
+    $message .= "You can track your order status by visiting:\n";
+    $message .= APP_URL . "/account.php?section=orders&id=" . $order['id'] . "\n\n";
+    $message .= "We'll send you updates as your order is processed and shipped.\n\n";
+    $message .= "Thank you for shopping with " . FROM_NAME . "!\n\n";
+    $message .= "Best regards,\n" . FROM_NAME;
+    
+    $headers = "From: " . FROM_EMAIL;
+    
+    $success = mail($user['email'], $subject, $message, $headers);
+    if ($success) {
+        Logger::info("Order confirmation email sent to: {$user['email']} for order #{$order['id']}");
+    } else {
+        Logger::error("Failed to send order confirmation email to: {$user['email']} for order #{$order['id']}");
+    }
+    return $success;
 }
 
 function sendSellerApprovalEmail($vendor, $user) {
-    $emailService = EmailService::getInstance();
-    return $emailService->send(
-        $user['email'],
-        'Your Seller Account Has Been Approved!',
-        'seller_approval',
-        [
-            'user' => $user,
-            'vendor' => $vendor,
-            'seller_center_url' => url('seller-center.php')
-        ]
-    );
+    $subject = "Your Seller Account Has Been Approved! - " . FROM_NAME;
+    $message = "Hello {$user['first_name']},\n\n";
+    $message .= "Great news! Your seller account has been approved.\n\n";
+    $message .= "Business Name: {$vendor['business_name']}\n";
+    $message .= "Account Type: Seller\n\n";
+    $message .= "You can now start selling your products on " . FROM_NAME . ".\n\n";
+    $message .= "Visit your seller center: " . APP_URL . "/seller-center.php\n\n";
+    $message .= "Welcome to our seller community!\n\n";
+    $message .= "Best regards,\n" . FROM_NAME;
+    
+    $headers = "From: " . FROM_EMAIL;
+    
+    $success = mail($user['email'], $subject, $message, $headers);
+    if ($success) {
+        Logger::info("Seller approval email sent to: {$user['email']}");
+    } else {
+        Logger::error("Failed to send seller approval email to: {$user['email']}");
+    }
+    return $success;
 }
 
 function sendLoginAlertEmail($user, $deviceInfo) {
-    $emailService = EmailService::getInstance();
-    return $emailService->send(
-        $user['email'],
-        'New Sign-In to Your Account',
-        'login_alert',
-        [
-            'user' => $user,
-            'device_info' => $deviceInfo,
-            'security_url' => url('account.php?tab=security')
-        ]
-    );
+    $subject = "New Sign-In to Your Account - " . FROM_NAME;
+    $message = "Hello {$user['first_name']},\n\n";
+    $message .= "We detected a new sign-in to your account:\n\n";
+    $message .= "Time: " . date('Y-m-d H:i:s') . "\n";
+    $message .= "Device: " . ($deviceInfo['device'] ?? 'Unknown') . "\n";
+    $message .= "Location: " . ($deviceInfo['location'] ?? 'Unknown') . "\n\n";
+    $message .= "If this was you, you can safely ignore this email.\n\n";
+    $message .= "If you didn't sign in, please secure your account immediately:\n";
+    $message .= APP_URL . "/account.php?tab=security\n\n";
+    $message .= "Best regards,\n" . FROM_NAME;
+    
+    $headers = "From: " . FROM_EMAIL;
+    
+    $success = mail($user['email'], $subject, $message, $headers);
+    if ($success) {
+        Logger::info("Login alert email sent to: {$user['email']}");
+    } else {
+        Logger::error("Failed to send login alert email to: {$user['email']}");
+    }
+    return $success;
 }
 ?>

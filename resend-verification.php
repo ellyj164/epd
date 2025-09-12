@@ -8,6 +8,7 @@ require_once __DIR__ . '/includes/init.php';
 
 $error = '';
 $success = '';
+$email_param = $_GET['email'] ?? ''; // Get email from URL parameter
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = sanitizeInput($_POST['email'] ?? '');
@@ -27,32 +28,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif ($userData['status'] === 'active' && $userData['verified_at']) {
                 $success = 'Your email is already verified. You can log in to your account.';
             } else {
-                // Generate new verification token
-                $token = EmailTokenManager::generateToken($userData['id'], 'email_verification', 1440); // 24 hours
+                // Generate new OTP for email verification (8-digit number)
+                $otp = random_int(10000000, 99999999);
+                $otp_expiry = date('Y-m-d H:i:s', strtotime('+15 minutes'));
                 
-                if ($token) {
-                    // Send verification email immediately
-                    $emailService = EmailService::getInstance();
-                    $emailSent = $emailService->send(
-                        $email,
-                        'Email Verification Required',
-                        'email_verification',
-                        [
-                            'user' => $userData,
-                            'token' => $token,
-                            'verification_url' => url("verify-email.php?token={$token}")
-                        ],
-                        ['immediate' => true] // Send immediately instead of queuing
-                    );
+                // Clear any existing OTP tokens for this user
+                $db = Database::getInstance()->getConnection();
+                $deleteStmt = $db->prepare("
+                    DELETE FROM email_tokens 
+                    WHERE user_id = ? AND type = 'email_verification'
+                ");
+                $deleteStmt->execute([$userData['id']]);
+                
+                // Store new OTP in email_tokens table
+                $stmt = $db->prepare("
+                    INSERT INTO email_tokens (user_id, token, type, email, expires_at, created_at)
+                    VALUES (?, ?, 'email_verification', ?, ?, ?)
+                ");
+                $otpStored = $stmt->execute([
+                    $userData['id'],
+                    (string)$otp, // Store OTP as token
+                    $email,
+                    $otp_expiry,
+                    date('Y-m-d H:i:s')
+                ]);
+                
+                if ($otpStored) {
+                    // Send verification email with OTP (simple mail function like reference)
+                    $subject = "Verify Your Email Address - " . FROM_NAME;
+                    $message = "Hello {$userData['first_name']},\n\n";
+                    $message .= "You requested a new verification code for " . FROM_NAME . ". ";
+                    $message .= "Your 8-digit verification code is: {$otp}\n\n";
+                    $message .= "This code will expire in 15 minutes.\n\n";
+                    $message .= "Please use this code to verify your email address.\n\n";
+                    $message .= "Regards,\n" . FROM_NAME;
+                    
+                    $headers = "From: " . FROM_EMAIL;
+                    
+                    $emailSent = mail($email, $subject, $message, $headers);
                     
                     if ($emailSent) {
-                        $success = 'A new verification email has been sent to your address. Please check your email and click the verification link.';
-                        Logger::info("Verification email resent to: {$email}");
+                        $success = 'A new verification code has been sent to your email address. Please check your email for the 8-digit code.';
+                        Logger::info("Verification OTP resent to: {$email}");
+                        // Redirect to verification page
+                        redirect("/verify-email.php?email=" . urlencode($email));
                     } else {
                         $error = 'Failed to send verification email. Please try again later or contact support.';
                     }
                 } else {
-                    $error = 'Failed to generate verification token. Please try again later.';
+                    $error = 'Failed to generate verification code. Please try again later.';
                 }
             }
             
@@ -100,7 +124,7 @@ includeHeader($page_title);
                                        name="email" 
                                        class="form-control" 
                                        placeholder="Enter your email address"
-                                       value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>"
+                                       value="<?php echo htmlspecialchars($_POST['email'] ?? $email_param); ?>"
                                        required>
                                 <small class="form-text">We'll send a verification email to this address</small>
                             </div>

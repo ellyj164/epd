@@ -32,21 +32,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $userData = $user->findByEmail($email);
             
             if ($userData) {
-                // Generate password reset token
-                $token = generatePasswordResetToken($userData['id']);
+                // Generate password reset token (like reference)
+                $token = bin2hex(random_bytes(32));
+                $token_expiry = date('Y-m-d H:i:s', strtotime('+15 minutes'));
                 
-                // In a real application, you would send this via email
-                // For demo purposes, we'll show it directly
-                $resetLink = APP_URL . "/reset-password.php?token=" . $token;
+                // Store the token in email_tokens table
+                $db = Database::getInstance()->getConnection();
+                
+                // Clear any existing password reset tokens for this user
+                $deleteStmt = $db->prepare("
+                    DELETE FROM email_tokens 
+                    WHERE user_id = ? AND type = 'password_reset'
+                ");
+                $deleteStmt->execute([$userData['id']]);
+                
+                // Store new token
+                $stmt = $db->prepare("
+                    INSERT INTO email_tokens (user_id, token, type, email, expires_at, created_at)
+                    VALUES (?, ?, 'password_reset', ?, ?, ?)
+                ");
+                $tokenStored = $stmt->execute([
+                    $userData['id'],
+                    $token,
+                    $userData['email'],
+                    $token_expiry,
+                    date('Y-m-d H:i:s')
+                ]);
+                
+                if ($tokenStored) {
+                    // Send the reset link email (like reference)
+                    $reset_link = APP_URL . "/reset-password.php?token=" . $token;
+                    $subject = "Password Reset Request - " . FROM_NAME;
+                    $email_message = "Hello {$userData['first_name']},\n\n";
+                    $email_message .= "You requested a password reset. Click the link below to set a new password:\n\n";
+                    $email_message .= "{$reset_link}\n\n";
+                    $email_message .= "This link will expire in 15 minutes. If you did not request this, please ignore this email.\n\n";
+                    $email_message .= "Regards,\n" . FROM_NAME;
+                    $headers = "From: " . FROM_EMAIL;
+
+                    $emailSent = mail($userData['email'], $subject, $email_message, $headers);
+                    
+                    if ($emailSent) {
+                        Logger::info("Password reset email sent to: {$userData['email']}");
+                    }
+                }
                 
                 logSecurityEvent($userData['id'], 'password_reset_requested', 'user', $userData['id']);
                 
-                $success = "Password reset instructions have been sent to your email address.<br><br>
-                           <strong>Demo Mode:</strong> Use this link: <a href='{$resetLink}'>Reset Password</a>";
+                // Always show generic success message (like reference)
+                $success = "If an account with that email exists, we have sent a password reset link.";
             } else {
-                // Don't reveal if email exists for security
+                // Always show generic success message to prevent user enumeration (like reference)
                 logSecurityEvent(null, 'password_reset_unknown_email', 'user', null, ['email' => $email]);
-                $success = "If an account with that email exists, password reset instructions have been sent.";
+                $success = "If an account with that email exists, we have sent a password reset link.";
             }
         }
     }
